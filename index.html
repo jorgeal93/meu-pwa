@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Sua Empresa | Gestão de Produção V2.0</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Link para o Manifesto -->
+<link rel="manifest" href="manifest.json">
+
+<!-- Meta tag para definir a cor da barra do navegador -->
+<meta name="theme-color" content="#000000">
+
+<!-- Script para registrar o Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('PWA Ativo com Sucesso!'))
+      .catch((err) => console.log('Erro ao registrar PWA:', err));
+  }
+</script>
+
+
+</head>
+
+<body>
+
+    <!-- LOGIN -->
+
+    <section id="loginPage" class="login-container">
+
+        <div class="login-card">
+
+            <div class="login-logo">
+                <h1>Sua Empresa</h1>
+                <p>Sistema Corporativo de Gestão de Produção</p>
+            </div>
+
+            <form id="loginForm">
+
+                <div class="input-group">
+                    <label>Usuário</label>
+                    <input type="text" id="username" placeholder="Digite seu usuário" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Senha</label>
+                    <input type="password" id="password" placeholder="Digite sua senha" required>
+                </div>
+
+                <button type="submit" class="btn-primary">
+                    Entrar no Sistema
+                </button>
+
+            </form>
+
+            <span class="login-info">
+                Usuário: admin | Senha: admin
+            </span>
+
+        </div>
+
+    </section>
+
+    <!-- DASHBOARD -->
+
+    <section id="dashboard" class="hidden">
+
+        <!-- SIDEBAR -->
+
+        <aside class="sidebar">
+
+            <div class="logo">
+
+                <h2>Sua</h2>
+                <span>Empresa</span>
+
+            </div>
+
+            <nav>
+
+                <button class="menu-btn active" data-page="home">
+                    Dashboard
+                </button>
+
+                <button class="menu-btn" data-page="operadores">
+                    Operadores
+                </button>
+
+                <button class="menu-btn" data-page="producao">
+                    Produção
+                </button>
+
+                <button class="menu-btn" data-page="historico">
+                    Histórico
+                </button>
+
+                <button class="menu-btn" data-page="metas">
+                    Metas
+                </button>
+
+                <button class="menu-btn" data-page="relatorios">
+                    Relatórios
+                </button>
+
+                <button class="menu-btn" data-page="configuracoes">
+                    Configurações
+                </button>
+
+            </nav>
+
+            <button id="logoutBtn" class="logout-btn">
+                Sair
+            </button>
+
+        </aside>
+
+        <!-- CONTEÚDO -->
+
+        <main class="content">
+
+            <!-- DASHBOARD -->
+
+            <section id="home" class="page active-page">
+
+                <div class="page-header">
+
+                    <h1>Dashboard Executivo</h1>
+                    <p>Acompanhamento geral da produção</p>
+
+                </div>
+
+                <div class="cards">
+
+                    <div class="card">
+                        <h3>Total Operadores</h3>
+                        <span id="totalOperadores">0</span>
+                    </div>
+
+                    <div class="card">
+                        <h3>Produção Hoje</h3>
+                        <span id="producaoHoje">0</span>
+                    </div>
+
+                    <div class="card">
+                        <h3>Produção Semanal</h3>
+                        <span id="producaoSemana">0</span>
+                    </div>
+
+                    <div class="card">
+                        <h3>Produção Mensal</h3>
+                        <span id="producaoMes">0</span>
+                    </div>
+
+                </div>
+
+                <div class="cards">
+
+                    <div class="card meta-card">
+
+                        <h3>Meta Diária</h3>
+
+                        <div class="progress-container">
+                            <div id="barraMetaDiaria" class="progress-bar"></div>
+                        </div>
+
+                        <span id="percentualMetaDiaria">
+                            0%
+                        </span>
+
+                    </div>
+
+                    <div class="card meta-card">
+
+                        <h3>Meta Semanal</h3>
+
+                        <div class="progress-container">
+                            <div id="barraMetaSemanal" class="progress-bar"></div>
+                        </div>
+
+                        <span id="percentualMetaSemanal">
+                            0%
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="chart-container">
+
+                    <canvas id="producaoChart"></canvas>
+
+                </div>
+
+            </section>
+
+            <!-- OPERADORES -->
+
+            <section id="operadores" class="page">
+
+                <div class="page-header">
+
+                    <h1>Gestão de Operadores</h1>
+
+                </div>
+
+                <form id="operadorForm" class="form-box">
+
+                    <input type="text" id="operadorNome" placeholder="Nome do Operador" required>
+
+                    <button type="submit" class="btn-primary">
+                        Adicionar Operador
+                    </button>
+
+                </form>
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>Nome</th>
+                                <th>Ações</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="operadoresTable"></tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+            <!-- PRODUÇÃO -->
+
+            <section id="producao" class="page">
+
+                <div class="page-header">
+
+                    <h1>Lançamento de Produção</h1>
+
+                </div>
+
+                <form id="producaoForm" class="form-box">
+
+                    <select id="operadorSelect"></select>
+
+                    <input type="number" id="parcelasInput" placeholder="Quantidade de Parcelas" required>
+
+                    <button type="submit" class="btn-primary">
+                        Registrar Produção
+                    </button>
+
+                </form>
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>Operador</th>
+                                <th>Parcelas</th>
+                                <th>Data</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="producaoTable"></tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+            <!-- HISTÓRICO -->
+
+            <section id="historico" class="page">
+
+                <div class="page-header">
+
+                    <h1>Histórico de Produção</h1>
+
+                </div>
+
+                <div class="form-box filtros">
+
+                    <input type="date" id="filtroDataInicial">
+
+                    <input type="date" id="filtroDataFinal">
+
+                    <select id="filtroOperador">
+                        <option value="">
+                            Todos Operadores
+                        </option>
+                    </select>
+
+                    <button id="btnFiltrar" type="button" class="btn-primary">
+
+                        Filtrar
+
+                    </button>
+
+                </div>
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>Operador</th>
+                                <th>Parcelas</th>
+                                <th>Data</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="historicoTable"></tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+            <!-- METAS -->
+
+            <section id="metas" class="page">
+
+                <div class="page-header">
+
+                    <h1>Configuração de Metas</h1>
+
+                </div>
+
+                <form id="metaForm" class="form-box">
+
+                    <input type="number" id="metaDiaria" placeholder="Meta Diária">
+
+                    <input type="number" id="metaSemanal" placeholder="Meta Semanal">
+
+                    <input type="number" id="metaMensal" placeholder="Meta Mensal">
+
+                    <button type="submit" class="btn-primary">
+
+                        Salvar Metas
+
+                    </button>
+
+                </form>
+
+            </section>
+
+            <!-- RELATÓRIOS -->
+
+            <section id="relatorios" class="page">
+
+                <div class="page-header">
+
+                    <h1>Relatórios</h1>
+
+                </div>
+
+                <div class="cards">
+
+                    <div class="card">
+
+                        <h3>Exportar Excel</h3>
+
+                        <button id="btnExcel" class="btn-primary">
+
+                            Gerar Excel
+
+                        </button>
+
+                    </div>
+
+                    <div class="card">
+
+                        <h3>Exportar PDF</h3>
+
+                        <button id="btnPDF" class="btn-primary">
+
+                            Gerar PDF
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- CONFIGURAÇÕES -->
+
+            <section id="configuracoes" class="page">
+
+                <div class="page-header">
+
+                    <h1>Configurações</h1>
+
+                </div>
+
+                <div class="cards">
+
+                    <div class="card">
+
+                        <h3>Modo Escuro</h3>
+
+                        <button id="toggleDarkMode" class="btn-primary">
+
+                            Ativar
+
+                        </button>
+
+                    </div>
+
+                    <div class="card">
+
+                        <h3>Versão</h3>
+
+                        <span>V2.0</span>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
+
+    </section>
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
