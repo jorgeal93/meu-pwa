@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teste | Gestão de Produção V2.1</title>
+    <title>SPG | Gestão de Produção Florestal</title>
 
     <link rel="stylesheet" href="style.css">
 
@@ -16,7 +16,7 @@
 
     <link rel="manifest" href="manifest.json">
 
-    <meta name="theme-color" content="#0f4c81">
+    <meta name="theme-color" content="#153f2b">
 
     <script>
         if ('serviceWorker' in navigator) {
@@ -38,10 +38,12 @@
 
             <div class="login-logo">
 
-                <h1>Teste</h1>
+                <img src="icone-512.png" alt="SPG">
+
+                <h1>SPG</h1>
 
                 <p>
-                    Sistema Corporativo de Gestão de Produção
+                    Gestão de Produção Florestal
                 </p>
 
             </div>
@@ -93,8 +95,11 @@
 
             <div class="logo">
 
-                <h2>Teste</h2>
-                <span>Consultoria</span>
+                <img src="icone-192.png" alt="SPG">
+                <div>
+                    <h2>SPG</h2>
+                    <span>Produção Florestal</span>
+                </div>
 
             </div>
 
@@ -310,8 +315,6 @@
 
                                 <th>Pessoas</th>
 
-                                <th>Meta</th>
-
                                 <th>Ações</th>
 
                             </tr>
@@ -338,11 +341,25 @@
 
                 <form id="producaoForm" class="form-box">
 
+                    <select id="localProducaoSelect" required>
+                        <option value="klabin_pr_sp">Klabin e Valor IFC / IPC / SP-PR</option>
+                        <option value="klabin_ifc">Klabin IFC / IPC / SC</option>
+                        <option value="valor_mg">Valor MG</option>
+                        <option value="arauco_ms">Arauco MS</option>
+                        <option value="klabin_ls">Klabin LS (Hectares)</option>
+                    </select>
+
                     <select id="operadorSelect"></select>
 
-                    <input type="number" id="parcelasInput" placeholder="Quantidade de Parcelas" min="1" required>
+                    <input type="number" id="parcelasInput" placeholder="Quantidade (Parcelas ou Hectares)" min="0.01" step="0.01" required>
 
                     <input type="number" id="pessoasProducaoInput" placeholder="Quantidade de Pessoas" min="1" required>
+
+                    <input type="date" id="dataProducaoInput" required>
+
+                    <div id="previewBonus" class="preview-bonus">
+                        Informe parcelas e pessoas para ver a prévia do valor.
+                    </div>
 
                     <button type="submit" class="btn-primary">
 
@@ -362,13 +379,19 @@
 
                                 <th>Operador</th>
 
-                                <th>Parcelas</th>
+                                <th>Local</th>
+
+                                <th>Produção</th>
 
                                 <th>Pessoas</th>
+
+                                <th>Meta</th>
 
                                 <th>Valor Extra</th>
 
                                 <th>Data</th>
+
+                                <th>Ações</th>
 
                             </tr>
 
@@ -381,7 +404,6 @@
                 </div>
 
             </section>
-
             <!-- HISTÓRICO -->
 
             <section id="historico" class="page">
@@ -428,9 +450,13 @@
 
                                 <th>Função</th>
 
-                                <th>Parcelas</th>
+                                <th>Local</th>
+
+                                <th>Produção</th>
 
                                 <th>Pessoas</th>
+
+                                <th>Meta</th>
 
                                 <th>Valor Extra</th>
 
@@ -540,6 +566,30 @@
 
                     <div class="card">
 
+                        <h3>Manutenção</h3>
+
+                        <div class="action-stack">
+
+                            <button id="btnRecalcular" class="btn-primary" type="button">
+                                Recalcular Produções
+                            </button>
+
+                            <button id="btnExportarBackup" class="btn-primary" type="button">
+                                Exportar Backup
+                            </button>
+
+                            <input type="file" id="inputImportarBackup" accept="application/json" hidden>
+
+                            <button id="btnImportarBackup" class="btn-primary" type="button">
+                                Importar Backup
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <div class="card">
+
                         <h3>Versão</h3>
 
                         <span>V2.1</span>
@@ -549,7 +599,6 @@
                 </div>
 
             </section>
-
         </main>
 
     </section>
@@ -563,3 +612,13 @@
 </body>
 
 </html>
+
+
+
+
+
+
+
+
+
+

@@ -1,5 +1,5 @@
 ﻿// =====================================
-// FORÇA CONSULTORIA V2.1
+// TESTE CONSULTORIA V2.1
 // PARTE 1
 // NUCLEO DO SISTEMA
 // =====================================
@@ -35,6 +35,27 @@ let metas =
         diaria: 6,
         semanal: 30
     };
+let dadosMigrados = false;
+
+producoes = producoes.map((prod, index) => {
+
+    if (prod.id) return prod;
+
+    dadosMigrados = true;
+
+    return {
+        ...prod,
+        id: Number(new Date(prod.data || Date.now())) + index
+    };
+
+});
+
+if (dadosMigrados) {
+    localStorage.setItem(
+        "producoes",
+        JSON.stringify(producoes)
+    );
+}
 
 // =====================================
 // TABELAS DE BÃ”NUS
@@ -299,79 +320,214 @@ function obterMetaEquipe(
 }
 
 // =====================================
-// CÃLCULO DE BÃ”NUS
+// CÁLCULO DE BÔNUS
 // =====================================
 
-function obterBonusPorTabela(
-    tabela,
-    indice,
-    incremento
-) {
+const LOCAL_PADRAO = "klabin_pr_sp";
 
-    if (indice < 0) {
-
-        return 0;
-
+const locaisProducao = {
+    klabin_pr_sp: {
+        nome: "Klabin / Valor IFC-IPC PR/SP",
+        unidade: "parcelas",
+        tipo: "parcelas",
+        grupos: {
+            ate2: {
+                meta: 6,
+                lider: { valores: [18, 39, 62, 88, 115, 142, 169], incremento: 27 },
+                auxiliar: { valores: [13, 28, 46, 66, 88, 110, 132], incremento: 22 }
+            },
+            mais2: {
+                meta: 7,
+                lider: { valores: [18, 39, 62, 87, 114, 141, 168], incremento: 27 },
+                auxiliar: { valores: [13, 28, 45, 64, 85, 106, 127], incremento: 21 }
+            }
+        }
+    },
+    klabin_ifc: {
+        nome: "Klabin IFC / IPC / SC",
+        unidade: "parcelas",
+        tipo: "parcelas",
+        grupos: {
+            ate2: {
+                meta: 7,
+                lider: { valores: [18, 39, 62, 88, 115, 142, 169], incremento: 27 },
+                auxiliar: { valores: [13, 28, 46, 66, 88, 110, 132], incremento: 22 }
+            },
+            mais2: {
+                meta: 9,
+                lider: { valores: [18, 39, 62, 87, 114, 141, 168], incremento: 27 },
+                auxiliar: { valores: [13, 28, 45, 64, 85, 106, 127], incremento: 21 }
+            }
+        }
+    },
+    valor_mg: {
+        nome: "Valor MG",
+        unidade: "parcelas",
+        tipo: "parcelas",
+        grupos: {
+            ate2: {
+                meta: 9,
+                lider: { valores: [18, 39, 62, 88, 115, 142, 169, 196, 223, 250, 277], incremento: 27 },
+                auxiliar: { valores: [13, 28, 46, 66, 88, 110, 132, 154, 176, 198, 220], incremento: 22 }
+            },
+            mais2: {
+                meta: 10,
+                lider: { valores: [18, 39, 62, 87, 114, 141, 168, 195, 222, 249, 276], incremento: 27 },
+                auxiliar: { valores: [13, 28, 45, 64, 85, 106, 127, 148, 169, 190, 211], incremento: 21 }
+            }
+        }
+    },
+    arauco_ms: {
+        nome: "Arauco MS",
+        unidade: "parcelas",
+        tipo: "parcelas",
+        grupos: {
+            ate2: {
+                meta: 11,
+                lider: { valores: [13, 28, 45, 64, 84, 104, 124, 144, 164, 184], incremento: 20 },
+                auxiliar: { valores: [8, 18, 30, 44, 59, 74, 89, 104, 119, 134], incremento: 15 }
+            },
+            mais2: {
+                meta: 14,
+                lider: { valores: [13, 28, 45, 64, 84, 104, 124, 144, 164, 184], incremento: 20 },
+                auxiliar: { valores: [8, 18, 30, 44, 59, 74, 89, 104, 119, 134], incremento: 15 }
+            }
+        }
+    },
+    klabin_ls: {
+        nome: "Klabin LS",
+        unidade: "hectares",
+        tipo: "hectares",
+        grupos: {
+            ate2: {
+                meta: 40,
+                lider: { faixas: [{ ate: 60, valor: 3.5 }, { ate: 80, valor: 4 }, { ate: Infinity, valor: 5.5 }] },
+                auxiliar: { faixas: [{ ate: 60, valor: 2.6 }, { ate: 80, valor: 3.1 }, { ate: Infinity, valor: 3.6 }] }
+            },
+            mais2: {
+                meta: 60,
+                lider: { faixas: [{ ate: 75, valor: 3.5 }, { ate: 95, valor: 4 }, { ate: Infinity, valor: 5.5 }] },
+                auxiliar: { faixas: [{ ate: 75, valor: 2.6 }, { ate: 95, valor: 3.1 }, { ate: Infinity, valor: 3.6 }] }
+            }
+        }
     }
+};
 
-    if (indice < tabela.length) {
+function formatarMoeda(valor) {
 
-        return tabela[indice];
-
-    }
-
-    const ultimoIndice =
-        tabela.length - 1;
-
-    return tabela[ultimoIndice] +
-        (indice - ultimoIndice) *
-        incremento;
+    return "R$ " +
+        Number(valor || 0)
+            .toFixed(2)
+            .replace(".", ",");
 
 }
 
-function calcularBonus(
-    operador,
-    parcelas,
-    pessoas
-) {
+function obterLocalProducao(local) {
 
-    const meta =
-        obterMetaEquipe(
-            pessoas || operador
-        );
+    return locaisProducao[local]
+        ? local
+        : LOCAL_PADRAO;
 
-    const quantidadePessoas =
-        Number(pessoas || operador.equipe);
+}
 
-    const maisDe2Pessoas =
-        Number.isFinite(quantidadePessoas) &&
-        quantidadePessoas > 2;
+function obterNomeLocalProducao(local) {
 
-    const indice =
-        parcelas -
-        (meta + 1);
+    return locaisProducao[
+        obterLocalProducao(local)
+    ].nome;
 
-    if (
-        operador.funcao ===
-        "lider"
-    ) {
+}
 
-        return obterBonusPorTabela(
-            maisDe2Pessoas
-                ? bonusLiderMaisDe2Pessoas
-                : bonusLiderAte2Pessoas,
-            indice,
-            incrementoLider
-        );
+function obterUnidadeLocalProducao(local) {
 
+    return locaisProducao[
+        obterLocalProducao(local)
+    ].unidade;
+
+}
+
+function obterGrupoPessoas(pessoas) {
+
+    return Number(pessoas) > 2
+        ? "mais2"
+        : "ate2";
+
+}
+
+function obterMetaCalculo(local, pessoas) {
+
+    const config =
+        locaisProducao[
+            obterLocalProducao(local)
+        ];
+
+    return config
+        .grupos[
+            obterGrupoPessoas(pessoas)
+        ]
+        .meta;
+
+}
+
+function obterBonusPorTabela(tabela, indice, incremento) {
+
+    if (indice < 0) return 0;
+
+    if (indice < tabela.length) {
+        return tabela[indice];
+    }
+
+    const ultimoIndice = tabela.length - 1;
+
+    return tabela[ultimoIndice] +
+        (indice - ultimoIndice) * incremento;
+
+}
+
+function calcularBonusHectares(total, meta, faixas) {
+
+    if (total <= meta) return 0;
+
+    let inicio = meta;
+    let bonus = 0;
+
+    faixas.forEach(faixa => {
+
+        if (total <= inicio) return;
+
+        const hectares =
+            Math.min(total, faixa.ate) - inicio;
+
+        if (hectares > 0) {
+            bonus += hectares * faixa.valor;
+        }
+
+        inicio = faixa.ate;
+
+    });
+
+    return Math.round(bonus * 100) / 100;
+
+}
+
+function calcularBonus(operador, quantidade, pessoas, local = LOCAL_PADRAO) {
+
+    const localKey = obterLocalProducao(local);
+    const config = locaisProducao[localKey];
+    const grupo = obterGrupoPessoas(pessoas);
+    const funcao = operador.funcao === "lider" ? "lider" : "auxiliar";
+    const regra = config.grupos[grupo][funcao];
+    const meta = config.grupos[grupo].meta;
+    const total = Number(quantidade || 0);
+
+    if (config.tipo === "hectares") {
+        return calcularBonusHectares(total, meta, regra.faixas);
     }
 
     return obterBonusPorTabela(
-        maisDe2Pessoas
-            ? bonusAuxiliarMaisDe2Pessoas
-            : bonusAuxiliarAte2Pessoas,
-        indice,
-        incrementoAuxiliar
+        regra.valores,
+        total - (meta + 1),
+        regra.incremento
     );
 
 }
@@ -390,6 +546,34 @@ const operadorForm =
 const producaoForm =
     document.getElementById(
         "producaoForm"
+    );
+
+const localProducaoSelect =
+    document.getElementById(
+        "localProducaoSelect"
+    );const operadorSelect =
+    document.getElementById(
+        "operadorSelect"
+    );
+
+const parcelasInput =
+    document.getElementById(
+        "parcelasInput"
+    );
+
+const pessoasProducaoInput =
+    document.getElementById(
+        "pessoasProducaoInput"
+    );
+
+const dataProducaoInput =
+    document.getElementById(
+        "dataProducaoInput"
+    );
+
+const previewBonus =
+    document.getElementById(
+        "previewBonus"
     );
 
 // =====================================
@@ -525,8 +709,6 @@ function renderOperadores() {
 
             <td>${op.equipe}</td>
 
-            <td>${obterMetaEquipe(op)}</td>
-
             <td>
 
                 <button
@@ -550,6 +732,134 @@ function renderOperadores() {
 // =====================================
 // SELECT OPERADORES
 // =====================================
+
+function obterDataHojeInput() {
+
+    const hoje = new Date();
+
+    hoje.setMinutes(
+        hoje.getMinutes() - hoje.getTimezoneOffset()
+    );
+
+    return hoje
+        .toISOString()
+        .slice(0, 10);
+
+}
+
+function criarDataProducao(dataInput) {
+
+    if (!dataInput) return new Date();
+
+    return new Date(`${dataInput}T12:00:00`);
+
+}
+
+function formatarDataInput(data) {
+
+    const dataObj = new Date(data);
+
+    if (Number.isNaN(dataObj.getTime())) {
+        return obterDataHojeInput();
+    }
+
+    dataObj.setMinutes(
+        dataObj.getMinutes() - dataObj.getTimezoneOffset()
+    );
+
+    return dataObj
+        .toISOString()
+        .slice(0, 10);
+
+}
+
+function inicializarDataProducao() {
+
+    if (
+        dataProducaoInput &&
+        !dataProducaoInput.value
+    ) {
+
+        dataProducaoInput.value =
+            obterDataHojeInput();
+
+    }
+
+}
+function obterOperadorPorId(id) {
+
+    return operadores.find(
+        op => op.id === Number(id)
+    );
+
+}
+
+function obterMetaProducao(prod, operador) {
+
+    if (prod?.meta) return prod.meta;
+
+    return obterMetaCalculo(
+        prod?.local,
+        prod?.pessoas || operador?.equipe || 0
+    );
+
+}
+
+function atualizarPreviewProducao() {
+
+    if (!previewBonus) return;
+
+    const operador =
+        obterOperadorPorId(
+            operadorSelect?.value
+        );
+
+    const parcelas =
+        Number(parcelasInput?.value);
+
+    const pessoas =
+        Number(pessoasProducaoInput?.value);
+
+    const local =
+        localProducaoSelect?.value ||
+        LOCAL_PADRAO;
+    if (!operador || !parcelas || !pessoas) {
+
+        previewBonus.textContent =
+            "Informe parcelas e pessoas para ver a prévia do valor.";
+
+        previewBonus.classList.remove(
+            "preview-bonus-ok"
+        );
+
+        return;
+
+    }
+
+    const meta =
+        obterMetaCalculo(
+            local,
+            pessoas
+        );
+
+    const bonus =
+                calcularBonus(
+                    operador,
+                    parcelas,
+                    pessoas,
+                    local
+                );
+
+    previewBonus.innerHTML = `
+        <strong>Prévia:</strong>
+        ${obterNomeLocalProducao(local)} · Meta ${meta} · ${formatarMoeda(bonus)}
+    `;
+
+    previewBonus.classList.add(
+        "preview-bonus-ok"
+    );
+
+}
 
 function renderSelectOperadores() {
 
@@ -613,7 +923,7 @@ function renderSelectOperadores() {
 }
 
 // =====================================
-// LANÃ‡AMENTO PRODUÃ‡ÃƒO
+// LANÇAMENTO PRODUÇÃO
 // =====================================
 
 if (producaoForm) {
@@ -626,36 +936,28 @@ if (producaoForm) {
 
             const operadorId =
                 Number(
-                    document
-                        .getElementById(
-                            "operadorSelect"
-                        )
-                        .value
+                    operadorSelect?.value
                 );
 
-            const parcelas =
+            const local =
+                localProducaoSelect?.value ||
+                LOCAL_PADRAO;const parcelas =
                 Number(
-                    document
-                        .getElementById(
-                            "parcelasInput"
-                        )
-                        .value
+                    parcelasInput?.value
                 );
 
             const pessoas =
                 Number(
-                    document
-                        .getElementById(
-                            "pessoasProducaoInput"
-                        )
-                        .value
+                    pessoasProducaoInput?.value
                 );
 
+            const dataProducao =
+                dataProducaoInput?.value ||
+                obterDataHojeInput();
+
             const operador =
-                operadores.find(
-                    op =>
-                        op.id ===
-                        operadorId
+                obterOperadorPorId(
+                    operadorId
                 );
 
             if (
@@ -668,32 +970,47 @@ if (producaoForm) {
 
             }
 
+            const meta =
+                obterMetaCalculo(
+                    local,
+                    pessoas
+                );
+
             const bonus =
                 calcularBonus(
                     operador,
                     parcelas,
-                    pessoas
+                    pessoas,
+                    local
                 );
 
             producoes.push({
 
+                id: Date.now(),
+
                 operadorId,
 
+                local,
                 parcelas,
 
                 pessoas,
 
+                meta,
+
                 bonus,
 
                 data:
-                    new Date()
-                        .toISOString()
+                    criarDataProducao(
+                        dataProducao
+                    ).toISOString()
 
             });
 
             salvarDados();
 
             this.reset();
+
+            inicializarDataProducao();
 
             atualizarSistema();
 
@@ -702,8 +1019,28 @@ if (producaoForm) {
 
 }
 
+[
+    localProducaoSelect,
+    operadorSelect,
+    parcelasInput,
+    pessoasProducaoInput,
+    dataProducaoInput
+].forEach(campo => {
+
+    campo?.addEventListener(
+        "input",
+        atualizarPreviewProducao
+    );
+
+    campo?.addEventListener(
+        "change",
+        atualizarPreviewProducao
+    );
+
+});
+
 // =====================================
-// TABELA PRODUÃ‡ÃƒO
+// TABELA PRODUÇÃO
 // =====================================
 
 function renderProducoes() {
@@ -723,10 +1060,8 @@ function renderProducoes() {
         .forEach(prod => {
 
             const operador =
-                operadores.find(
-                    op =>
-                        op.id ===
-                        prod.operadorId
+                obterOperadorPorId(
+                    prod.operadorId
                 );
 
             const data =
@@ -742,12 +1077,14 @@ function renderProducoes() {
 
                 <td>
                     ${operador
-                    ? operador.nome
-                    : "-"
-                }
+                        ? operador.nome
+                        : "-"
+                    }
                 </td>
 
                 <td>
+                    ${obterNomeLocalProducao(prod.local)}
+                </td><td>
                     ${prod.parcelas}
                 </td>
 
@@ -756,13 +1093,31 @@ function renderProducoes() {
                 </td>
 
                 <td>
-                    R$ ${Number(
-                    prod.bonus || 0
-                ).toFixed(2)}
+                    ${obterMetaProducao(prod, operador)}
+                </td>
+
+                <td>
+                    ${formatarMoeda(prod.bonus)}
                 </td>
 
                 <td>
                     ${data}
+                </td>
+
+                <td>
+                    <div class="action-buttons">
+                        <button
+                            class="btn-primary"
+                            onclick="editarProducao(${prod.id})">
+                            Editar
+                        </button>
+
+                        <button
+                            class="btn-danger"
+                            onclick="removerProducao(${prod.id})">
+                            Excluir
+                        </button>
+                    </div>
                 </td>
 
             </tr>
@@ -772,6 +1127,127 @@ function renderProducoes() {
         });
 
 }
+
+function removerProducao(id) {
+
+    const confirmar =
+        confirm(
+            "Deseja excluir este lançamento?"
+        );
+
+    if (!confirmar) return;
+
+    producoes =
+        producoes.filter(
+            prod => prod.id !== id
+        );
+
+    salvarDados();
+
+    atualizarSistema();
+
+}
+
+window.removerProducao =
+    removerProducao;
+function editarProducao(id) {
+
+    const prod =
+        producoes.find(
+            item => item.id === id
+        );
+
+    if (!prod) return;
+
+    const operador =
+        obterOperadorPorId(
+            prod.operadorId
+        );
+
+    if (!operador) {
+        alert("Operador não encontrado para este lançamento.");
+        return;
+    }
+
+    const localAtual =
+        obterLocalProducao(prod.local);
+
+    const novoLocal =
+        prompt(
+            "Local/atividade (klabin_pr_sp, klabin_ifc, valor_mg, arauco_ms, klabin_ls):",
+            localAtual
+        );
+
+    if (novoLocal === null) return;
+
+    const local =
+        obterLocalProducao(
+            novoLocal.trim()
+        );const novasParcelas =
+        prompt(
+            obterUnidadeLocalProducao(local) === "hectares"
+                ? "Quantidade em hectares:"
+                : "Quantidade de parcelas:",
+            prod.parcelas
+        );
+
+    if (novasParcelas === null) return;
+
+    const novasPessoas =
+        prompt(
+            "Quantidade de pessoas:",
+            prod.pessoas || operador.equipe || ""
+        );
+
+    if (novasPessoas === null) return;
+
+    const novaData =
+        prompt(
+            "Data da produção (AAAA-MM-DD):",
+            formatarDataInput(prod.data)
+        );
+
+    if (novaData === null) return;
+
+    const parcelas = Number(novasParcelas);
+    const pessoas = Number(novasPessoas);
+
+    if (
+        !parcelas ||
+        !pessoas ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(novaData)
+    ) {
+        alert("Informe quantidade, pessoas e data válidas.");
+        return;
+    }
+
+    const meta =
+        obterMetaCalculo(
+            local,
+            pessoas
+        );
+
+    const bonus =
+        calcularBonus(
+            operador,
+            parcelas,
+            pessoas,
+            local
+        );
+
+    prod.local = local;
+    prod.parcelas = parcelas;
+    prod.pessoas = pessoas;
+    prod.meta = meta;
+    prod.bonus = bonus;
+    prod.data = criarDataProducao(novaData).toISOString();
+
+    salvarDados();
+    atualizarSistema();
+
+}
+window.editarProducao =
+    editarProducao;
 // =====================================
 // PARTE 3
 // DASHBOARD E METAS
@@ -1214,7 +1690,7 @@ function renderHistorico(
 
         tabela.innerHTML = `
         <tr>
-            <td colspan="7">
+            <td colspan="10">
                 Nenhum registro encontrado
             </td>
         </tr>
@@ -1230,10 +1706,8 @@ function renderHistorico(
         .forEach(prod => {
 
             const operador =
-                operadores.find(
-                    op =>
-                        op.id ===
-                        prod.operadorId
+                obterOperadorPorId(
+                    prod.operadorId
                 );
 
             const data =
@@ -1260,6 +1734,8 @@ function renderHistorico(
                 </td>
 
                 <td>
+                    ${obterNomeLocalProducao(prod.local)}
+                </td><td>
                     ${prod.parcelas}
                 </td>
 
@@ -1268,9 +1744,11 @@ function renderHistorico(
                 </td>
 
                 <td>
-                    R$ ${Number(
-                prod.bonus || 0
-            ).toFixed(2)}
+                    ${obterMetaProducao(prod, operador)}
+                </td>
+
+                <td>
+                    ${formatarMoeda(prod.bonus)}
                 </td>
 
                 <td>
@@ -1284,7 +1762,6 @@ function renderHistorico(
         });
 
 }
-
 // =====================================
 // FILTROS
 // =====================================
@@ -1498,11 +1975,19 @@ if (btnExcel) {
                             Funcao:
                                 operador?.funcao || "",
 
+                            
+                            Local:
+                                obterNomeLocalProducao(prod.local),Unidade:
+                                obterUnidadeLocalProducao(prod.local),
+
                             Parcelas:
                                 prod.parcelas,
 
                             Pessoas:
                                 prod.pessoas || operador?.equipe || "",
+
+                            Meta:
+                                obterMetaProducao(prod, operador),
 
                             Bonus:
                                 prod.bonus || 0
@@ -1525,7 +2010,7 @@ if (btnExcel) {
                 .book_append_sheet(
                     wb,
                     ws,
-                    "ProduÃ§Ã£o"
+                    "Produção"
                 );
 
             XLSX.writeFile(
@@ -1551,12 +2036,166 @@ document
         () => {
 
             alert(
-                "PDF serÃ¡ implementado na V2.2"
+                "PDF será implementado na V2.2"
             );
 
         }
     );
 
+
+// =====================================
+// MANUTENÇÃO DOS DADOS
+// =====================================
+
+function recalcularProducoes() {
+
+    if (!confirm("Deseja recalcular todos os lançamentos com a regra atual?")) {
+        return;
+    }
+
+    producoes = producoes.map(prod => {
+
+        const operador =
+            obterOperadorPorId(prod.operadorId);
+
+        if (!operador) return prod;
+
+        const local =
+            obterLocalProducao(prod.local);
+
+        const pessoas =
+            Number(prod.pessoas || operador.equipe || 0);
+
+        const meta =
+            obterMetaCalculo(
+                local,
+                pessoas || operador.equipe || 0
+            );
+
+        const bonus =
+            calcularBonus(
+                operador,
+                Number(prod.parcelas || 0),
+                pessoas,
+                local
+            );
+
+        return {
+            ...prod,
+            local,pessoas: pessoas || prod.pessoas,
+            meta,
+            bonus
+        };
+
+    });
+
+    salvarDados();
+    atualizarSistema();
+
+    alert("Produções recalculadas!");
+
+}
+function exportarBackup() {
+
+    const dados = {
+        versao: "2.1",
+        exportadoEm: new Date().toISOString(),
+        operadores,
+        producoes,
+        metas
+    };
+
+    const blob =
+        new Blob(
+            [JSON.stringify(dados, null, 2)],
+            { type: "application/json" }
+        );
+
+    const link =
+        document.createElement("a");
+
+    link.href = URL.createObjectURL(blob);
+    link.download = "backup-producao.json";
+    link.click();
+
+    URL.revokeObjectURL(link.href);
+
+}
+
+function importarBackupArquivo(arquivo) {
+
+    if (!arquivo) return;
+
+    const leitor = new FileReader();
+
+    leitor.onload = () => {
+
+        try {
+
+            const dados = JSON.parse(leitor.result);
+
+            if (!Array.isArray(dados.operadores) || !Array.isArray(dados.producoes)) {
+                throw new Error("Backup inválido.");
+            }
+
+            if (!confirm("Importar este backup vai substituir os dados atuais. Deseja continuar?")) {
+                return;
+            }
+
+            operadores = dados.operadores;
+            producoes = dados.producoes;
+            metas = dados.metas || metas;
+
+            salvarDados();
+            carregarMetas();
+            atualizarSistema();
+
+            alert("Backup importado com sucesso!");
+
+        } catch (erro) {
+
+            alert("Não foi possível importar o backup.");
+
+        }
+
+    };
+
+    leitor.readAsText(arquivo);
+
+}
+
+const btnRecalcular =
+    document.getElementById("btnRecalcular");
+
+const btnExportarBackup =
+    document.getElementById("btnExportarBackup");
+
+const btnImportarBackup =
+    document.getElementById("btnImportarBackup");
+
+const inputImportarBackup =
+    document.getElementById("inputImportarBackup");
+
+btnRecalcular
+    ?.addEventListener("click", recalcularProducoes);
+
+btnExportarBackup
+    ?.addEventListener("click", exportarBackup);
+
+btnImportarBackup
+    ?.addEventListener(
+        "click",
+        () => inputImportarBackup?.click()
+    );
+
+inputImportarBackup
+    ?.addEventListener(
+        "change",
+        function () {
+            importarBackupArquivo(this.files?.[0]);
+            this.value = "";
+        }
+    );
 // =====================================
 // ATUALIZA SISTEMA
 // =====================================
@@ -1577,6 +2216,10 @@ function atualizarSistema() {
 
     atualizarGrafico();
 
+    inicializarDataProducao();
+
+    atualizarPreviewProducao();
+
 }
 
 // =====================================
@@ -1588,6 +2231,30 @@ carregarTema();
 carregarMetas();
 
 atualizarSistema();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -3,8 +3,8 @@
     "short_name": "SPG",
     "start_url": "./index.html",
     "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#000000",
+    "background_color": "#f2f6f1",
+    "theme_color": "#153f2b",
     "icons": [
         {
             "src": "./icone-192.png",
