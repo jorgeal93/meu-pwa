@@ -1,4 +1,4 @@
-{
+﻿{
     "name": "Sistema de Gestão de Produção Florestal",
     "short_name": "SPG",
     "start_url": "./index.html",
@@ -12,9 +12,10 @@
             "type": "image/png"
         },
         {
-            "src": "./Ícone-512.png",
+            "src": "./icone-512.png",
             "sizes": "512x512",
             "type": "image/png"
         }
     ]
 }
+

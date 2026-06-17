@@ -1,29 +1,87 @@
-// =====================================
-// FORÇA CONSULTORIA V2.0
-// PARTE 1 - NÚCLEO DO SISTEMA
+﻿// =====================================
+// FORÇA CONSULTORIA V2.1
+// PARTE 1
+// NUCLEO DO SISTEMA
 // =====================================
 
 // LOGIN
+
+const USER = "admin";
+const PASS = "admin";
 
 const loginForm = document.getElementById("loginForm");
 const loginPage = document.getElementById("loginPage");
 const dashboard = document.getElementById("dashboard");
 const logoutBtn = document.getElementById("logoutBtn");
 
+// =====================================
 // DADOS
+// =====================================
 
 let operadores =
-    JSON.parse(localStorage.getItem("operadores")) || [];
+    JSON.parse(
+        localStorage.getItem("operadores")
+    ) || [];
 
 let producoes =
-    JSON.parse(localStorage.getItem("producoes")) || [];
+    JSON.parse(
+        localStorage.getItem("producoes")
+    ) || [];
 
 let metas =
-    JSON.parse(localStorage.getItem("metas")) || {
-        diaria: 10,
-        semanal: 50,
-        mensal: 200
+    JSON.parse(
+        localStorage.getItem("metas")
+    ) || {
+        diaria: 6,
+        semanal: 30
     };
+
+// =====================================
+// TABELAS DE BÃ”NUS
+// =====================================
+
+const bonusLiderAte2Pessoas = [
+    18,
+    39,
+    62,
+    88,
+    115,
+    142,
+    169
+];
+
+const bonusAuxiliarAte2Pessoas = [
+    13,
+    28,
+    46,
+    66,
+    88,
+    110,
+    132
+];
+
+const bonusLiderMaisDe2Pessoas = [
+    18,
+    39,
+    62,
+    87,
+    114,
+    141,
+    168
+];
+
+const bonusAuxiliarMaisDe2Pessoas = [
+    13,
+    28,
+    45,
+    64,
+    85,
+    106,
+    127
+];
+
+const incrementoLider = 27;
+const incrementoAuxiliar = 22;
 
 // =====================================
 // SALVAR DADOS
@@ -49,16 +107,19 @@ function salvarDados() {
 }
 
 // =====================================
-// LOGIN AUTOMÁTICO
+// LOGIN AUTOMÃTICO
 // =====================================
 
-if (localStorage.getItem("logged") === "true") {
+if (
+    localStorage.getItem("logged")
+    === "true"
+) {
 
     loginPage.style.display = "none";
 
-    dashboard.classList.remove("hidden");
-
-    dashboard.style.display = "flex";
+    dashboard.classList.remove(
+        "hidden"
+    );
 
 }
 
@@ -66,59 +127,75 @@ if (localStorage.getItem("logged") === "true") {
 // LOGIN
 // =====================================
 
-loginForm.addEventListener("submit", function (e) {
+if (loginForm) {
 
-    e.preventDefault();
+    loginForm.addEventListener(
+        "submit",
+        function (e) {
 
-    const usuario =
-        document
-            .getElementById("username")
-            .value
-            .trim();
+            e.preventDefault();
 
-    const senha =
-        document
-            .getElementById("password")
-            .value
-            .trim();
+            const usuario =
+                document
+                    .getElementById(
+                        "username"
+                    )
+                    .value
+                    .trim();
 
-    if (
-        usuario === "admin" &&
-        senha === "admin"
-    ) {
+            const senha =
+                document
+                    .getElementById(
+                        "password"
+                    )
+                    .value
+                    .trim();
 
-        localStorage.setItem(
-            "logged",
-            "true"
-        );
+            if (
+                usuario === USER &&
+                senha === PASS
+            ) {
 
-        loginPage.style.display = "none";
+                localStorage.setItem(
+                    "logged",
+                    "true"
+                );
 
-        dashboard.classList.remove("hidden");
+                location.reload();
 
-        dashboard.style.display = "flex";
+            } else {
 
-        atualizarSistema();
+                alert(
+                    "Usuário ou senha inválidos."
+                );
 
-    } else {
+            }
 
-        alert("Usuário ou senha inválidos.");
+        }
+    );
 
-    }
-
-});
+}
 
 // =====================================
 // LOGOUT
 // =====================================
 
-logoutBtn.addEventListener("click", () => {
+if (logoutBtn) {
 
-    localStorage.removeItem("logged");
+    logoutBtn.addEventListener(
+        "click",
+        () => {
 
-    location.reload();
+            localStorage.removeItem(
+                "logged"
+            );
 
-});
+            location.reload();
+
+        }
+    );
+
+}
 
 // =====================================
 // MENU
@@ -128,70 +205,260 @@ document
     .querySelectorAll(".menu-btn")
     .forEach(btn => {
 
-        btn.addEventListener("click", () => {
+        btn.addEventListener(
+            "click",
+            () => {
 
-            document
-                .querySelectorAll(".menu-btn")
-                .forEach(b =>
-                    b.classList.remove("active")
+                document
+                    .querySelectorAll(
+                        ".menu-btn"
+                    )
+                    .forEach(b =>
+                        b.classList.remove(
+                            "active"
+                        )
+                    );
+
+                btn.classList.add(
+                    "active"
                 );
 
-            btn.classList.add("active");
+                document
+                    .querySelectorAll(
+                        ".page"
+                    )
+                    .forEach(page =>
+                        page.classList.remove(
+                            "active-page"
+                        )
+                    );
 
-            document
-                .querySelectorAll(".page")
-                .forEach(page =>
-                    page.classList.remove("active-page")
-                );
+                const page =
+                    document.getElementById(
+                        btn.dataset.page
+                    );
 
-            document
-                .getElementById(
-                    btn.dataset.page
-                )
-                .classList.add(
-                    "active-page"
-                );
+                if (page) {
 
-        });
+                    page.classList.add(
+                        "active-page"
+                    );
+
+                }
+
+            }
+        );
 
     });
 
 // =====================================
-// OPERADORES
+// META DA EQUIPE
 // =====================================
 
-const operadorForm =
-    document.getElementById("operadorForm");
+function obterMetaEquipe(
+    operadorOuEquipe
+) {
 
-operadorForm.addEventListener(
-    "submit",
-    function (e) {
+    const equipe =
+        typeof operadorOuEquipe === "object"
+            ? operadorOuEquipe.equipe
+            : operadorOuEquipe;
 
-        e.preventDefault();
+    const quantidadePessoas =
+        Number(equipe);
 
-        const nome =
-            document
-                .getElementById(
-                    "operadorNome"
-                )
-                .value
-                .trim();
+    if (
+        Number.isFinite(quantidadePessoas) &&
+        quantidadePessoas > 0
+    ) {
 
-        if (!nome) return;
-
-        operadores.push({
-            id: Date.now(),
-            nome: nome
-        });
-
-        salvarDados();
-
-        this.reset();
-
-        atualizarSistema();
+        return quantidadePessoas >= 3
+            ? 7
+            : 6;
 
     }
-);
+
+    const equipeNormalizada =
+        String(equipe || "")
+            .trim()
+            .toLowerCase();
+
+    const integrantes =
+        operadores.filter(
+            op =>
+                String(op.equipe || "")
+                    .trim()
+                    .toLowerCase() ===
+                equipeNormalizada
+        );
+
+    return integrantes.length >= 3
+        ? 7
+        : 6;
+
+}
+
+// =====================================
+// CÃLCULO DE BÃ”NUS
+// =====================================
+
+function obterBonusPorTabela(
+    tabela,
+    indice,
+    incremento
+) {
+
+    if (indice < 0) {
+
+        return 0;
+
+    }
+
+    if (indice < tabela.length) {
+
+        return tabela[indice];
+
+    }
+
+    const ultimoIndice =
+        tabela.length - 1;
+
+    return tabela[ultimoIndice] +
+        (indice - ultimoIndice) *
+        incremento;
+
+}
+
+function calcularBonus(
+    operador,
+    parcelas,
+    pessoas
+) {
+
+    const meta =
+        obterMetaEquipe(
+            pessoas || operador
+        );
+
+    const quantidadePessoas =
+        Number(pessoas || operador.equipe);
+
+    const maisDe2Pessoas =
+        Number.isFinite(quantidadePessoas) &&
+        quantidadePessoas > 2;
+
+    const indice =
+        parcelas -
+        (meta + 1);
+
+    if (
+        operador.funcao ===
+        "lider"
+    ) {
+
+        return obterBonusPorTabela(
+            maisDe2Pessoas
+                ? bonusLiderMaisDe2Pessoas
+                : bonusLiderAte2Pessoas,
+            indice,
+            incrementoLider
+        );
+
+    }
+
+    return obterBonusPorTabela(
+        maisDe2Pessoas
+            ? bonusAuxiliarMaisDe2Pessoas
+            : bonusAuxiliarAte2Pessoas,
+        indice,
+        incrementoAuxiliar
+    );
+
+}
+// =====================================
+// PARTE 2
+// OPERADORES E PRODUÃ‡ÃƒO
+// =====================================
+
+// FORMULÃRIOS
+
+const operadorForm =
+    document.getElementById(
+        "operadorForm"
+    );
+
+const producaoForm =
+    document.getElementById(
+        "producaoForm"
+    );
+
+// =====================================
+// CADASTRAR OPERADOR
+// =====================================
+
+if (operadorForm) {
+
+    operadorForm.addEventListener(
+        "submit",
+        function (e) {
+
+            e.preventDefault();
+
+            const nome =
+                document
+                    .getElementById(
+                        "operadorNome"
+                    )
+                    .value
+                    .trim();
+
+            const funcao =
+                document
+                    .getElementById(
+                        "operadorFuncao"
+                    )
+                    .value;
+
+            const equipe =
+                document
+                    .getElementById(
+                        "operadorEquipe"
+                    )
+                    .value
+                    .trim();
+
+            if (
+                !nome ||
+                !funcao ||
+                !equipe
+            ) {
+
+                return;
+
+            }
+
+            operadores.push({
+
+                id: Date.now(),
+
+                nome,
+
+                funcao,
+
+                equipe
+
+            });
+
+            salvarDados();
+
+            this.reset();
+
+            atualizarSistema();
+
+        }
+    );
+
+}
 
 // =====================================
 // REMOVER OPERADOR
@@ -199,17 +466,21 @@ operadorForm.addEventListener(
 
 function removerOperador(id) {
 
-    if (
-        !confirm(
+    const confirmar =
+        confirm(
             "Deseja excluir este operador?"
-        )
-    ) {
+        );
+
+    if (!confirmar) {
+
         return;
+
     }
 
     operadores =
         operadores.filter(
-            op => op.id !== id
+            op =>
+                op.id !== id
         );
 
     producoes =
@@ -228,7 +499,7 @@ window.removerOperador =
     removerOperador;
 
 // =====================================
-// TABELA OPERADORES
+// RENDER OPERADORES
 // =====================================
 
 function renderOperadores() {
@@ -238,19 +509,28 @@ function renderOperadores() {
             "operadoresTable"
         );
 
+    if (!tabela) return;
+
     tabela.innerHTML = "";
 
     operadores.forEach(op => {
 
         tabela.innerHTML += `
+
         <tr>
 
             <td>${op.nome}</td>
 
+            <td>${op.funcao}</td>
+
+            <td>${op.equipe}</td>
+
+            <td>${obterMetaEquipe(op)}</td>
+
             <td>
 
                 <button
-                    class="btn-primary delete-btn"
+                    class="btn-primary"
                     onclick="removerOperador(${op.id})">
 
                     Excluir
@@ -260,6 +540,7 @@ function renderOperadores() {
             </td>
 
         </tr>
+
         `;
 
     });
@@ -289,9 +570,14 @@ function renderSelectOperadores() {
         operadores.forEach(op => {
 
             select.innerHTML += `
+
             <option value="${op.id}">
+
                 ${op.nome}
+                (${op.funcao})
+
             </option>
+
             `;
 
         });
@@ -300,19 +586,24 @@ function renderSelectOperadores() {
 
     if (filtro) {
 
-        filtro.innerHTML =
-            `
-            <option value="">
-                Todos Operadores
-            </option>
-            `;
+        filtro.innerHTML = `
+
+        <option value="">
+            Todos Operadores
+        </option>
+
+        `;
 
         operadores.forEach(op => {
 
             filtro.innerHTML += `
+
             <option value="${op.id}">
+
                 ${op.nome}
+
             </option>
+
             `;
 
         });
@@ -322,59 +613,97 @@ function renderSelectOperadores() {
 }
 
 // =====================================
-// PRODUÇÃO
+// LANÃ‡AMENTO PRODUÃ‡ÃƒO
 // =====================================
 
-const producaoForm =
-    document.getElementById(
-        "producaoForm"
+if (producaoForm) {
+
+    producaoForm.addEventListener(
+        "submit",
+        function (e) {
+
+            e.preventDefault();
+
+            const operadorId =
+                Number(
+                    document
+                        .getElementById(
+                            "operadorSelect"
+                        )
+                        .value
+                );
+
+            const parcelas =
+                Number(
+                    document
+                        .getElementById(
+                            "parcelasInput"
+                        )
+                        .value
+                );
+
+            const pessoas =
+                Number(
+                    document
+                        .getElementById(
+                            "pessoasProducaoInput"
+                        )
+                        .value
+                );
+
+            const operador =
+                operadores.find(
+                    op =>
+                        op.id ===
+                        operadorId
+                );
+
+            if (
+                !operador ||
+                !parcelas ||
+                !pessoas
+            ) {
+
+                return;
+
+            }
+
+            const bonus =
+                calcularBonus(
+                    operador,
+                    parcelas,
+                    pessoas
+                );
+
+            producoes.push({
+
+                operadorId,
+
+                parcelas,
+
+                pessoas,
+
+                bonus,
+
+                data:
+                    new Date()
+                        .toISOString()
+
+            });
+
+            salvarDados();
+
+            this.reset();
+
+            atualizarSistema();
+
+        }
     );
 
-producaoForm.addEventListener(
-    "submit",
-    function (e) {
-
-        e.preventDefault();
-
-        const operadorId =
-            Number(
-                document.getElementById(
-                    "operadorSelect"
-                ).value
-            );
-
-        const parcelas =
-            Number(
-                document.getElementById(
-                    "parcelasInput"
-                ).value
-            );
-
-        if (!parcelas) return;
-
-        producoes.push({
-
-            operadorId,
-
-            parcelas,
-
-            data:
-                new Date()
-                .toISOString()
-
-        });
-
-        salvarDados();
-
-        this.reset();
-
-        atualizarSistema();
-
-    }
-);
+}
 
 // =====================================
-// TABELA PRODUÇÃO
+// TABELA PRODUÃ‡ÃƒO
 // =====================================
 
 function renderProducoes() {
@@ -408,13 +737,14 @@ function renderProducoes() {
                 );
 
             tabela.innerHTML += `
+
             <tr>
 
                 <td>
                     ${operador
-                        ? operador.nome
-                        : "-"
-                    }
+                    ? operador.nome
+                    : "-"
+                }
                 </td>
 
                 <td>
@@ -422,117 +752,151 @@ function renderProducoes() {
                 </td>
 
                 <td>
+                    ${prod.pessoas || operador?.equipe || "-"}
+                </td>
+
+                <td>
+                    R$ ${Number(
+                    prod.bonus || 0
+                ).toFixed(2)}
+                </td>
+
+                <td>
                     ${data}
                 </td>
 
             </tr>
+
             `;
 
         });
 
 }
-
 // =====================================
-// SISTEMA
-// =====================================
-
-function atualizarSistema() {
-
-    renderOperadores();
-
-    renderSelectOperadores();
-
-    renderProducoes();
-
-}
-
-// =====================================
-// INICIALIZAÇÃO
-// =====================================
-
-atualizarSistema();
-// =====================================
-// PARTE 2 - DASHBOARD E METAS
+// PARTE 3
+// DASHBOARD E METAS
 // =====================================
 
 let chart;
 
 // =====================================
-// PRODUÇÃO HOJE
+// PRODUÃ‡ÃƒO HOJE
 // =====================================
 
 function calcularProducaoHoje() {
 
-    const hoje = new Date().toDateString();
+    const hoje =
+        new Date().toDateString();
 
     return producoes
         .filter(prod =>
-            new Date(prod.data).toDateString() === hoje
+            new Date(prod.data)
+                .toDateString() === hoje
         )
-        .reduce((total, prod) =>
-            total + prod.parcelas, 0);
+        .reduce(
+            (total, prod) =>
+                total + prod.parcelas,
+            0
+        );
 
 }
 
 // =====================================
-// PRODUÇÃO SEMANA
+// PRODUÃ‡ÃƒO SEMANA
 // =====================================
 
 function calcularProducaoSemana() {
 
     const hoje = new Date();
 
-    const inicioSemana = new Date(hoje);
+    const inicioSemana =
+        new Date(hoje);
 
     inicioSemana.setDate(
-        hoje.getDate() - hoje.getDay()
+        hoje.getDate() -
+        hoje.getDay()
     );
 
     return producoes
         .filter(prod => {
 
-            const dataProd =
+            const data =
                 new Date(prod.data);
 
-            return dataProd >= inicioSemana;
+            return (
+                data >= inicioSemana
+            );
 
         })
-        .reduce((total, prod) =>
-            total + prod.parcelas, 0);
+        .reduce(
+            (total, prod) =>
+                total + prod.parcelas,
+            0
+        );
 
 }
 
 // =====================================
-// PRODUÇÃO MÊS
+// EXTRA HOJE
 // =====================================
 
-function calcularProducaoMes() {
+function calcularExtraHoje() {
+
+    const hoje =
+        new Date().toDateString();
+
+    return producoes
+        .filter(prod =>
+            new Date(prod.data)
+                .toDateString() === hoje
+        )
+        .reduce(
+            (total, prod) =>
+                total +
+                Number(prod.bonus || 0),
+            0
+        );
+
+}
+
+// =====================================
+// EXTRA SEMANA
+// =====================================
+
+function calcularExtraSemana() {
 
     const hoje = new Date();
+
+    const inicioSemana =
+        new Date(hoje);
+
+    inicioSemana.setDate(
+        hoje.getDate() -
+        hoje.getDay()
+    );
 
     return producoes
         .filter(prod => {
 
-            const dataProd =
+            const data =
                 new Date(prod.data);
 
             return (
-                dataProd.getMonth() ===
-                hoje.getMonth()
-            ) &&
-            (
-                dataProd.getFullYear() ===
-                hoje.getFullYear()
+                data >= inicioSemana
             );
 
         })
-        .reduce((total, prod) =>
-            total + prod.parcelas, 0);
+        .reduce(
+            (total, prod) =>
+                total +
+                Number(prod.bonus || 0),
+            0
+        );
 
 }
 
 // =====================================
-// CARDS DASHBOARD
+// DASHBOARD
 // =====================================
 
 function atualizarDashboard() {
@@ -540,130 +904,90 @@ function atualizarDashboard() {
     const totalOperadores =
         operadores.length;
 
-    const producaoHoje =
-        calcularProducaoHoje();
-
-    const producaoSemana =
-        calcularProducaoSemana();
-
-    const producaoMes =
-        calcularProducaoMes();
-
-    const elTotal =
-        document.getElementById(
-            "totalOperadores"
-        );
-
-    const elHoje =
-        document.getElementById(
-            "producaoHoje"
-        );
-
-    const elSemana =
-        document.getElementById(
-            "producaoSemana"
-        );
-
-    const elMes =
-        document.getElementById(
-            "producaoMes"
-        );
-
-    if (elTotal)
-        elTotal.textContent =
-            totalOperadores;
-
-    if (elHoje)
-        elHoje.textContent =
-            producaoHoje;
-
-    if (elSemana)
-        elSemana.textContent =
-            producaoSemana;
-
-    if (elMes)
-        elMes.textContent =
-            producaoMes;
-
-}
-
-// =====================================
-// METAS
-// =====================================
-
-function atualizarMetas() {
-
     const hoje =
         calcularProducaoHoje();
 
     const semana =
         calcularProducaoSemana();
 
-    const percentualDiario =
-        metas.diaria > 0
-        ? (hoje / metas.diaria) * 100
-        : 0;
+    const extraHoje =
+        calcularExtraHoje();
 
-    const percentualSemanal =
-        metas.semanal > 0
-        ? (semana / metas.semanal) * 100
-        : 0;
+    const extraSemana =
+        calcularExtraSemana();
 
-    const barraDiaria =
+    const totalEl =
         document.getElementById(
-            "barraMetaDiaria"
+            "totalOperadores"
         );
 
-    const barraSemanal =
+    const hojeEl =
         document.getElementById(
-            "barraMetaSemanal"
+            "producaoHoje"
         );
 
-    const textoDiario =
+    const semanaEl =
         document.getElementById(
-            "percentualMetaDiaria"
+            "producaoSemana"
         );
 
-    const textoSemanal =
+    const extraHojeEl =
         document.getElementById(
-            "percentualMetaSemanal"
+            "valorExtraHoje"
         );
 
-    if (barraDiaria) {
+    const extraSemanaEl =
+        document.getElementById(
+            "valorExtraSemana"
+        );
 
-        barraDiaria.style.width =
-            Math.min(
-                percentualDiario,
-                100
-            ) + "%";
+    if (totalEl)
+        totalEl.textContent =
+            totalOperadores;
 
-    }
+    if (hojeEl)
+        hojeEl.textContent =
+            hoje;
 
-    if (barraSemanal) {
+    if (semanaEl)
+        semanaEl.textContent =
+            semana;
 
-        barraSemanal.style.width =
-            Math.min(
-                percentualSemanal,
-                100
-            ) + "%";
+    if (extraHojeEl)
+        extraHojeEl.textContent =
+            "R$ " +
+            extraHoje.toFixed(2);
 
-    }
+    if (extraSemanaEl)
+        extraSemanaEl.textContent =
+            "R$ " +
+            extraSemana.toFixed(2);
 
-    if (textoDiario) {
+}
 
-        textoDiario.textContent =
-            percentualDiario
-            .toFixed(0) + "%";
+// =====================================
+// CARREGAR METAS
+// =====================================
 
-    }
+function carregarMetas() {
 
-    if (textoSemanal) {
+    const diaria =
+        document.getElementById(
+            "metaDiaria"
+        );
 
-        textoSemanal.textContent =
-            percentualSemanal
-            .toFixed(0) + "%";
+    const semanal =
+        document.getElementById(
+            "metaSemanal"
+        );
 
-    }
+    if (diaria)
+        diaria.value =
+            metas.diaria;
+
+    if (semanal)
+        semanal.value =
+            metas.semanal;
 
 }
 
@@ -689,7 +1013,8 @@ if (metaForm) {
                     document
                         .getElementById(
                             "metaDiaria"
-                        ).value
+                        )
+                        .value
                 );
 
             metas.semanal =
@@ -697,15 +1022,8 @@ if (metaForm) {
                     document
                         .getElementById(
                             "metaSemanal"
-                        ).value
-                );
-
-            metas.mensal =
-                Number(
-                    document
-                        .getElementById(
-                            "metaMensal"
-                        ).value
+                        )
+                        .value
                 );
 
             salvarDados();
@@ -713,7 +1031,7 @@ if (metaForm) {
             atualizarMetas();
 
             alert(
-                "Metas salvas com sucesso!"
+                "Metas salvas!"
             );
 
         }
@@ -722,45 +1040,80 @@ if (metaForm) {
 }
 
 // =====================================
-// CARREGAR METAS
+// METAS
 // =====================================
 
-function carregarMetas() {
+function atualizarMetas() {
 
-    const diaria =
+    const hoje =
+        calcularProducaoHoje();
+
+    const semana =
+        calcularProducaoSemana();
+
+    const percDiaria =
+        metas.diaria > 0
+            ? (hoje / metas.diaria) * 100
+            : 0;
+
+    const percSemanal =
+        metas.semanal > 0
+            ? (semana / metas.semanal) * 100
+            : 0;
+
+    const barraDiaria =
         document.getElementById(
-            "metaDiaria"
+            "barraMetaDiaria"
         );
 
-    const semanal =
+    const barraSemanal =
         document.getElementById(
-            "metaSemanal"
+            "barraMetaSemanal"
         );
 
-    const mensal =
+    const textoDiaria =
         document.getElementById(
-            "metaMensal"
+            "percentualMetaDiaria"
         );
 
-    if (diaria)
-        diaria.value =
-            metas.diaria || 10;
+    const textoSemanal =
+        document.getElementById(
+            "percentualMetaSemanal"
+        );
 
-    if (semanal)
-        semanal.value =
-            metas.semanal || 50;
+    if (barraDiaria)
+        barraDiaria.style.width =
+            Math.min(
+                percDiaria,
+                100
+            ) + "%";
 
-    if (mensal)
-        mensal.value =
-            metas.mensal || 200;
+    if (barraSemanal)
+        barraSemanal.style.width =
+            Math.min(
+                percSemanal,
+                100
+            ) + "%";
+
+    if (textoDiaria)
+        textoDiaria.textContent =
+            percDiaria.toFixed(0)
+            + "%";
+
+    if (textoSemanal)
+        textoSemanal.textContent =
+            percSemanal.toFixed(0)
+            + "%";
 
 }
 
 // =====================================
-// GRÁFICO
+// GRÃFICO
 // =====================================
 
 function atualizarGrafico() {
+
+    if (typeof Chart === "undefined") return;
 
     const canvas =
         document.getElementById(
@@ -774,17 +1127,21 @@ function atualizarGrafico() {
 
     operadores.forEach(op => {
 
-        labels.push(op.nome);
+        labels.push(
+            op.nome
+        );
 
         const total =
             producoes
                 .filter(
                     prod =>
-                    prod.operadorId === op.id
+                        prod.operadorId ===
+                        op.id
                 )
                 .reduce(
                     (soma, prod) =>
-                    soma + prod.parcelas,
+                        soma +
+                        prod.parcelas,
                     0
                 );
 
@@ -793,130 +1150,81 @@ function atualizarGrafico() {
     });
 
     if (chart) {
+
         chart.destroy();
+
     }
 
-    chart = new Chart(canvas, {
+    chart = new Chart(
+        canvas,
+        {
+            type: "bar",
 
-        type: "bar",
+            data: {
 
-        data: {
+                labels,
 
-            labels: labels,
+                datasets: [
 
-            datasets: [
+                    {
+                        label:
+                            "Parcelas Produzidas",
 
-                {
-                    label:
-                        "Parcelas Produzidas",
+                        data:
+                            valores
 
-                    data: valores
+                    }
 
-                }
+                ]
 
-            ]
+            },
 
-        },
+            options: {
 
-        options: {
+                responsive: true,
 
-            responsive: true,
+                maintainAspectRatio:
+                    false
 
-            maintainAspectRatio: false
+            }
 
         }
-
-    });
+    );
 
 }
-
 // =====================================
-// ATUALIZA SISTEMA
-// =====================================
-
-const atualizarSistemaOriginal =
-    atualizarSistema;
-
-atualizarSistema = function () {
-
-    atualizarSistemaOriginal();
-
-    atualizarDashboard();
-
-    atualizarMetas();
-
-    atualizarGrafico();
-
-};
-
-// =====================================
-// INICIALIZAÇÃO
-// =====================================
-
-carregarMetas();
-
-atualizarDashboard();
-
-atualizarMetas();
-
-atualizarGrafico();
-// =====================================
-// PARTE 3 - HISTÓRICO PROFISSIONAL
-// =====================================
-
-// ELEMENTOS
-
-const historicoTable =
-    document.getElementById(
-        "historicoTable"
-    );
-
-const filtroDataInicial =
-    document.getElementById(
-        "filtroDataInicial"
-    );
-
-const filtroDataFinal =
-    document.getElementById(
-        "filtroDataFinal"
-    );
-
-const filtroOperador =
-    document.getElementById(
-        "filtroOperador"
-    );
-
-const btnFiltrar =
-    document.getElementById(
-        "btnFiltrar"
-    );
-
-// =====================================
-// HISTÓRICO COMPLETO
+// PARTE 4
+// HISTÃ“RICO
 // =====================================
 
 function renderHistorico(
-    listaProducoes = producoes
+    lista = producoes
 ) {
 
-    if (!historicoTable) return;
+    const tabela =
+        document.getElementById(
+            "historicoTable"
+        );
 
-    historicoTable.innerHTML = "";
+    if (!tabela) return;
 
-    if (listaProducoes.length === 0) {
+    tabela.innerHTML = "";
 
-        historicoTable.innerHTML = `
+    if (lista.length === 0) {
+
+        tabela.innerHTML = `
         <tr>
-            <td colspan="3">
+            <td colspan="7">
                 Nenhum registro encontrado
             </td>
         </tr>
         `;
 
         return;
+
     }
 
-    listaProducoes
+    lista
         .slice()
         .reverse()
         .forEach(prod => {
@@ -935,15 +1243,20 @@ function renderHistorico(
                     "pt-BR"
                 );
 
-            historicoTable.innerHTML += `
+            tabela.innerHTML += `
+
             <tr>
 
                 <td>
-                    ${
-                        operador
-                        ? operador.nome
-                        : "-"
-                    }
+                    ${operador?.equipe || "-"}
+                </td>
+
+                <td>
+                    ${operador?.nome || "-"}
+                </td>
+
+                <td>
+                    ${operador?.funcao || "-"}
                 </td>
 
                 <td>
@@ -951,10 +1264,21 @@ function renderHistorico(
                 </td>
 
                 <td>
+                    ${prod.pessoas || operador?.equipe || "-"}
+                </td>
+
+                <td>
+                    R$ ${Number(
+                prod.bonus || 0
+            ).toFixed(2)}
+                </td>
+
+                <td>
                     ${data}
                 </td>
 
             </tr>
+
             `;
 
         });
@@ -962,7 +1286,7 @@ function renderHistorico(
 }
 
 // =====================================
-// FILTRAR HISTÓRICO
+// FILTROS
 // =====================================
 
 function filtrarHistorico() {
@@ -970,191 +1294,113 @@ function filtrarHistorico() {
     let resultado =
         [...producoes];
 
-    const operadorSelecionado =
-        filtroOperador.value;
+    const operadorId =
+        document.getElementById(
+            "filtroOperador"
+        )?.value;
 
     const dataInicial =
-        filtroDataInicial.value;
+        document.getElementById(
+            "filtroDataInicial"
+        )?.value;
 
     const dataFinal =
-        filtroDataFinal.value;
+        document.getElementById(
+            "filtroDataFinal"
+        )?.value;
 
-    // FILTRO OPERADOR
-
-    if (operadorSelecionado !== "") {
+    if (operadorId) {
 
         resultado =
             resultado.filter(
-                prod =>
-                    prod.operadorId ===
+                p =>
+                    p.operadorId ===
                     Number(
-                        operadorSelecionado
+                        operadorId
                     )
             );
 
     }
 
-    // FILTRO DATA INICIAL
-
     if (dataInicial) {
 
         resultado =
-            resultado.filter(prod => {
-
-                const dataProd =
-                    new Date(prod.data);
-
-                const inicio =
-                    new Date(dataInicial);
-
-                return dataProd >= inicio;
-
-            });
+            resultado.filter(
+                p =>
+                    new Date(
+                        p.data
+                    ) >=
+                    new Date(
+                        dataInicial
+                    )
+            );
 
     }
-
-    // FILTRO DATA FINAL
 
     if (dataFinal) {
 
+        const fim =
+            new Date(
+                dataFinal
+            );
+
+        fim.setHours(
+            23,
+            59,
+            59,
+            999
+        );
+
         resultado =
-            resultado.filter(prod => {
-
-                const dataProd =
-                    new Date(prod.data);
-
-                const fim =
-                    new Date(dataFinal);
-
-                fim.setHours(
-                    23,
-                    59,
-                    59,
-                    999
-                );
-
-                return dataProd <= fim;
-
-            });
+            resultado.filter(
+                p =>
+                    new Date(
+                        p.data
+                    ) <= fim
+            );
 
     }
 
-    renderHistorico(resultado);
+    renderHistorico(
+        resultado
+    );
 
 }
 
-// =====================================
-// BOTÃO FILTRAR
-// =====================================
-
-if (btnFiltrar) {
-
-    btnFiltrar.addEventListener(
+document
+    .getElementById(
+        "btnFiltrar"
+    )
+    ?.addEventListener(
         "click",
         filtrarHistorico
     );
 
-}
-
 // =====================================
-// FILTRO AUTOMÁTICO
+// DARK MODE
 // =====================================
-
-if (filtroOperador) {
-
-    filtroOperador.addEventListener(
-        "change",
-        filtrarHistorico
-    );
-
-}
-
-if (filtroDataInicial) {
-
-    filtroDataInicial.addEventListener(
-        "change",
-        filtrarHistorico
-    );
-
-}
-
-if (filtroDataFinal) {
-
-    filtroDataFinal.addEventListener(
-        "change",
-        filtrarHistorico
-    );
-
-}
-
-// =====================================
-// ESTATÍSTICAS HISTÓRICO
-// =====================================
-
-function totalHistorico() {
-
-    return producoes.reduce(
-        (soma, item) =>
-            soma + item.parcelas,
-        0
-    );
-
-}
-
-function totalHojeHistorico() {
-
-    const hoje =
-        new Date().toDateString();
-
-    return producoes
-        .filter(
-            prod =>
-                new Date(
-                    prod.data
-                ).toDateString() === hoje
-        )
-        .reduce(
-            (soma, item) =>
-                soma + item.parcelas,
-            0
-        );
-
-}
-
-// =====================================
-// ATUALIZA SISTEMA
-// =====================================
-
-const atualizarSistemaParte2 =
-    atualizarSistema;
-
-atualizarSistema = function () {
-
-    atualizarSistemaParte2();
-
-    renderHistorico();
-
-};
-
-// =====================================
-// INICIALIZAÇÃO
-// =====================================
-
-renderHistorico();
-// =====================================
-// PARTE 4 - DARK MODE
-// =====================================
-
-// ELEMENTOS
 
 const toggleDarkMode =
     document.getElementById(
         "toggleDarkMode"
     );
 
-// =====================================
-// CARREGAR TEMA
-// =====================================
+function atualizarBotaoTema() {
+
+    if (!toggleDarkMode) return;
+
+    const dark =
+        document.body
+            .classList.contains(
+                "dark-theme"
+            );
+
+    toggleDarkMode.textContent =
+        dark
+            ? "Desativar"
+            : "Ativar";
+
+}
 
 function carregarTema() {
 
@@ -1163,68 +1409,37 @@ function carregarTema() {
             "tema"
         );
 
-    if (tema === "dark") {
+    if (
+        tema === "dark"
+    ) {
 
-        document.body.classList.add(
-            "dark-mode"
-        );
-
-        atualizarBotaoTema();
+        document.body
+            .classList.add(
+                "dark-theme"
+            );
 
     }
 
-}
-
-// =====================================
-// SALVAR TEMA
-// =====================================
-
-function salvarTema(modo) {
-
-    localStorage.setItem(
-        "tema",
-        modo
-    );
+    atualizarBotaoTema();
 
 }
-
-// =====================================
-// TEXTO BOTÃO
-// =====================================
-
-function atualizarBotaoTema() {
-
-    if (!toggleDarkMode) return;
-
-    const darkAtivo =
-        document.body.classList.contains(
-            "dark-mode"
-        );
-
-    toggleDarkMode.textContent =
-        darkAtivo
-            ? "☀️ Modo Claro"
-            : "🌙 Modo Escuro";
-
-}
-
-// =====================================
-// ALTERNAR TEMA
-// =====================================
 
 function alternarTema() {
 
-    document.body.classList.toggle(
-        "dark-mode"
-    );
-
-    const darkAtivo =
-        document.body.classList.contains(
-            "dark-mode"
+    document.body
+        .classList.toggle(
+            "dark-theme"
         );
 
-    salvarTema(
-        darkAtivo
+    const dark =
+        document.body
+            .classList.contains(
+                "dark-theme"
+            );
+
+    localStorage.setItem(
+        "tema",
+        dark
             ? "dark"
             : "light"
     );
@@ -1233,23 +1448,151 @@ function alternarTema() {
 
 }
 
-// =====================================
-// EVENTO BOTÃO
-// =====================================
-
-if (toggleDarkMode) {
-
-    toggleDarkMode.addEventListener(
+toggleDarkMode
+    ?.addEventListener(
         "click",
         alternarTema
+    );
+
+// =====================================
+// EXPORTAR EXCEL
+// =====================================
+
+const btnExcel =
+    document.getElementById(
+        "btnExcel"
+    );
+
+if (btnExcel) {
+
+    btnExcel.addEventListener(
+        "click",
+        () => {
+
+            const dados =
+                producoes.map(
+                    prod => {
+
+                        const operador =
+                            operadores.find(
+                                op =>
+                                    op.id ===
+                                    prod.operadorId
+                            );
+
+                        return {
+
+                            Data:
+                                new Date(
+                                    prod.data
+                                ).toLocaleDateString(
+                                    "pt-BR"
+                                ),
+
+                            Equipe:
+                                operador?.equipe || "",
+
+                            Operador:
+                                operador?.nome || "",
+
+                            Funcao:
+                                operador?.funcao || "",
+
+                            Parcelas:
+                                prod.parcelas,
+
+                            Pessoas:
+                                prod.pessoas || operador?.equipe || "",
+
+                            Bonus:
+                                prod.bonus || 0
+
+                        };
+
+                    });
+
+            const ws =
+                XLSX.utils
+                    .json_to_sheet(
+                        dados
+                    );
+
+            const wb =
+                XLSX.utils
+                    .book_new();
+
+            XLSX.utils
+                .book_append_sheet(
+                    wb,
+                    ws,
+                    "ProduÃ§Ã£o"
+                );
+
+            XLSX.writeFile(
+                wb,
+                "Relatorio_Producao.xlsx"
+            );
+
+        }
     );
 
 }
 
 // =====================================
-// INICIALIZAÇÃO
+// PDF FUTURO
+// =====================================
+
+document
+    .getElementById(
+        "btnPDF"
+    )
+    ?.addEventListener(
+        "click",
+        () => {
+
+            alert(
+                "PDF serÃ¡ implementado na V2.2"
+            );
+
+        }
+    );
+
+// =====================================
+// ATUALIZA SISTEMA
+// =====================================
+
+function atualizarSistema() {
+
+    renderOperadores();
+
+    renderSelectOperadores();
+
+    renderProducoes();
+
+    renderHistorico();
+
+    atualizarDashboard();
+
+    atualizarMetas();
+
+    atualizarGrafico();
+
+}
+
+// =====================================
+// INICIALIZAÃ‡ÃƒO
 // =====================================
 
 carregarTema();
 
-atualizarBotaoTema();
+carregarMetas();
+
+atualizarSistema();
+
+
+
+
+
+
+
+

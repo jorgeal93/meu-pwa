@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v1_pwa_cache';
+﻿const CACHE_NAME = 'v8_pwa_cache';
 const ASSETS = [
     './',
     './index.html',
@@ -15,7 +15,7 @@ self.addEventListener('install', (e) => {
     );
 });
 
-// Serve os arquivos do cache quando o usuário estiver offline
+// Serve os arquivos do cache quando o usuÃ¡rio estiver offline
 self.addEventListener('fetch', (e) => {
     e.respondWith(
         caches.match(e.request).then((response) => {
@@ -23,3 +23,22 @@ self.addEventListener('fetch', (e) => {
         })
     );
 });
+
+// Atualiza o cache antigo quando houver nova versao dos arquivos
+self.addEventListener('activate', (e) => {
+    e.waitUntil(
+        caches.keys().then((keys) => {
+            return Promise.all(
+                keys
+                    .filter((key) => key !== CACHE_NAME)
+                    .map((key) => caches.delete(key))
+            );
+        })
+    );
+});
+
+
+
+
+
+
