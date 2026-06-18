@@ -268,32 +268,49 @@
                 <div class="page-header">
 
                     <h1>Gestão de Operadores</h1>
+                    <p>
+                        Cadastro da equipe com função, quantidade de pessoas e data de entrada.
+                    </p>
 
                 </div>
 
-                <form id="operadorForm" class="form-box">
+                <form id="operadorForm" class="form-box operador-form">
 
-                    <input type="text" id="operadorNome" placeholder="Nome do Operador" required>
+                    <div class="form-field">
+                        <label for="operadorNome">Operador</label>
+                        <input type="text" id="operadorNome" placeholder="Nome do operador" required>
+                    </div>
 
-                    <select id="operadorFuncao" required>
+                    <div class="form-field">
+                        <label for="operadorFuncao">Função</label>
+                        <select id="operadorFuncao" required>
 
-                        <option value="">
-                            Função
-                        </option>
+                            <option value="">
+                                Selecione
+                            </option>
 
-                        <option value="lider">
-                            Lider
-                        </option>
+                            <option value="lider">
+                                Lider
+                            </option>
 
-                        <option value="auxiliar">
-                            Auxiliar
-                        </option>
+                            <option value="auxiliar">
+                                Auxiliar
+                            </option>
 
-                    </select>
+                        </select>
+                    </div>
 
-                    <input type="text" id="operadorEquipe" placeholder="Quantidade de Pessoas (Ex: 1,2,3...)" required>
+                    <div class="form-field">
+                        <label for="operadorEquipe">Pessoas</label>
+                        <input type="number" id="operadorEquipe" placeholder="Ex: 1, 2, 3..." min="1" step="1" required>
+                    </div>
 
-                    <button type="submit" class="btn-primary">
+                    <div class="form-field">
+                        <label for="operadorData">Data</label>
+                        <input type="date" id="operadorData" required>
+                    </div>
+
+                    <button type="submit" class="btn-primary form-submit">
 
                         Adicionar Operador
 
@@ -314,6 +331,8 @@
                                 <th>Função</th>
 
                                 <th>Pessoas</th>
+
+                                <th>Data</th>
 
                                 <th>Ações</th>
 
@@ -612,7 +631,6 @@
 </body>
 
 </html>
-
 
 
 

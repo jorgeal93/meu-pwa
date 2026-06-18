@@ -571,6 +571,11 @@ const dataProducaoInput =
         "dataProducaoInput"
     );
 
+const dataOperadorInput =
+    document.getElementById(
+        "operadorData"
+    );
+
 const previewBonus =
     document.getElementById(
         "previewBonus"
@@ -611,10 +616,15 @@ if (operadorForm) {
                     .value
                     .trim();
 
+            const dataOperador =
+                dataOperadorInput?.value ||
+                obterDataHojeInput();
+
             if (
                 !nome ||
                 !funcao ||
-                !equipe
+                !equipe ||
+                !/^\d{4}-\d{2}-\d{2}$/.test(dataOperador)
             ) {
 
                 return;
@@ -629,13 +639,20 @@ if (operadorForm) {
 
                 funcao,
 
-                equipe
+                equipe,
+
+                dataCadastro:
+                    criarDataProducao(
+                        dataOperador
+                    ).toISOString()
 
             });
 
             salvarDados();
 
             this.reset();
+
+            inicializarDataOperador();
 
             atualizarSistema();
 
@@ -683,6 +700,99 @@ window.removerOperador =
     removerOperador;
 
 // =====================================
+// EDITAR OPERADOR
+// =====================================
+
+function editarOperador(id) {
+
+    const operador =
+        operadores.find(
+            op => op.id === id
+        );
+
+    if (!operador) return;
+
+    const novoNome =
+        prompt(
+            "Nome do operador:",
+            operador.nome
+        );
+
+    if (novoNome === null) return;
+
+    const novaFuncao =
+        prompt(
+            "Função (lider ou auxiliar):",
+            operador.funcao
+        );
+
+    if (novaFuncao === null) return;
+
+    const novaEquipe =
+        prompt(
+            "Quantidade de pessoas:",
+            operador.equipe
+        );
+
+    if (novaEquipe === null) return;
+
+    const novaData =
+        prompt(
+            "Data do operador (AAAA-MM-DD):",
+            formatarDataInput(
+                operador.dataCadastro
+            )
+        );
+
+    if (novaData === null) return;
+
+    const nome =
+        novoNome.trim();
+
+    const funcao =
+        novaFuncao.trim().toLowerCase();
+
+    const equipe =
+        Number(novaEquipe);
+
+    if (
+        !nome ||
+        !["lider", "auxiliar"].includes(funcao) ||
+        !equipe ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(novaData)
+    ) {
+        alert("Informe nome, função, pessoas e data válidos.");
+        return;
+    }
+
+    operador.nome = nome;
+    operador.funcao = funcao;
+    operador.equipe = String(equipe);
+    operador.dataCadastro = criarDataProducao(novaData).toISOString();
+
+    salvarDados();
+    atualizarSistema();
+
+}
+
+window.editarOperador =
+    editarOperador;
+
+function formatarFuncaoOperador(funcao) {
+
+    if (funcao === "lider") {
+        return '<span class="badge-lider">Lider</span>';
+    }
+
+    if (funcao === "auxiliar") {
+        return '<span class="badge-auxiliar">Auxiliar</span>';
+    }
+
+    return funcao || "-";
+
+}
+
+// =====================================
 // RENDER OPERADORES
 // =====================================
 
@@ -699,25 +809,44 @@ function renderOperadores() {
 
     operadores.forEach(op => {
 
+        const data =
+            formatarDataTabela(
+                op.dataCadastro
+            );
+
         tabela.innerHTML += `
 
         <tr>
 
             <td>${op.nome}</td>
 
-            <td>${op.funcao}</td>
+            <td>${formatarFuncaoOperador(op.funcao)}</td>
 
             <td>${op.equipe}</td>
 
+            <td>${data}</td>
+
             <td>
 
-                <button
-                    class="btn-primary"
-                    onclick="removerOperador(${op.id})">
+                <div class="action-buttons">
 
-                    Excluir
+                    <button
+                        class="btn-primary"
+                        onclick="editarOperador(${op.id})">
 
-                </button>
+                        Editar
+
+                    </button>
+
+                    <button
+                        class="btn-danger"
+                        onclick="removerOperador(${op.id})">
+
+                        Excluir
+
+                    </button>
+
+                </div>
 
             </td>
 
@@ -770,6 +899,36 @@ function formatarDataInput(data) {
     return dataObj
         .toISOString()
         .slice(0, 10);
+
+}
+
+function formatarDataTabela(data) {
+
+    if (!data) return "-";
+
+    const dataObj = new Date(data);
+
+    if (Number.isNaN(dataObj.getTime())) {
+        return "-";
+    }
+
+    return dataObj.toLocaleDateString(
+        "pt-BR"
+    );
+
+}
+
+function inicializarDataOperador() {
+
+    if (
+        dataOperadorInput &&
+        !dataOperadorInput.value
+    ) {
+
+        dataOperadorInput.value =
+            obterDataHojeInput();
+
+    }
 
 }
 
@@ -2215,6 +2374,8 @@ function atualizarSistema() {
     atualizarMetas();
 
     atualizarGrafico();
+
+    inicializarDataOperador();
 
     inicializarDataProducao();
 

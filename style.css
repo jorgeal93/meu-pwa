@@ -216,6 +216,27 @@ button {
   background: linear-gradient(90deg, var(--primary), var(--accent), var(--sky));
 }
 
+.form-field {
+  min-width: 0;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--text-muted);
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+.operador-form {
+  grid-template-columns: minmax(220px, 1.4fr) minmax(150px, .8fr) minmax(130px, .65fr) minmax(150px, .8fr);
+  align-items: end;
+}
+
+.operador-form .form-submit {
+  grid-column: 1 / -1;
+}
+
 .filtros {
   grid-template-columns: repeat(4, minmax(160px, 1fr));
   align-items: end;
@@ -733,6 +754,15 @@ body.dark-theme ::-webkit-scrollbar-thumb {
   .filtros {
     grid-template-columns: 1fr 1fr;
   }
+
+  .operador-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .operador-form .form-field:first-child,
+  .operador-form .form-submit {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 600px) {
@@ -783,8 +813,14 @@ body.dark-theme ::-webkit-scrollbar-thumb {
   }
 
   .cards,
-  .filtros {
+  .filtros,
+  .operador-form {
     grid-template-columns: 1fr;
+  }
+
+  .operador-form .form-field:first-child,
+  .operador-form .form-submit {
+    grid-column: auto;
   }
 
   .cards {
@@ -930,4 +966,18 @@ td .btn-danger {
 .action-buttons .btn-danger {
   min-height: 36px;
   padding: 8px 12px;
+}
+
+@media (max-width: 600px) {
+  .action-buttons {
+    gap: 6px;
+  }
+
+  .action-buttons .btn-primary,
+  .action-buttons .btn-danger,
+  td .btn-danger {
+    min-height: 34px;
+    padding: 7px 10px;
+    font-size: .82rem;
+  }
 }
