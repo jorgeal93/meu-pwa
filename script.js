@@ -694,13 +694,13 @@ function obterMetaCalculo(local, pessoas) {
 
     const config =
         locaisProducao[
-            obterLocalProducao(local)
+        obterLocalProducao(local)
         ];
 
     return config
         .grupos[
-            obterGrupoPessoas(pessoas)
-        ]
+        obterGrupoPessoas(pessoas)
+    ]
         .meta;
 
 }
@@ -787,10 +787,10 @@ const producaoForm =
 const localProducaoSelect =
     document.getElementById(
         "localProducaoSelect"
-    );const operadorSelect =
-    document.getElementById(
-        "operadorSelect"
-    );
+    ); const operadorSelect =
+        document.getElementById(
+            "operadorSelect"
+        );
 
 const parcelasInput =
     document.getElementById(
@@ -1315,12 +1315,12 @@ function atualizarPreviewProducao() {
         );
 
     const bonus =
-                calcularBonus(
-                    operador,
-                    parcelas,
-                    pessoas,
-                    local
-                );
+        calcularBonus(
+            operador,
+            parcelas,
+            pessoas,
+            local
+        );
 
     const destaque = document.createElement("strong");
     destaque.textContent = "Prévia:";
@@ -1406,10 +1406,10 @@ if (producaoForm) {
 
             const local =
                 localProducaoSelect?.value ||
-                LOCAL_PADRAO;const parcelas =
-                Number(
-                    parcelasInput?.value
-                );
+                LOCAL_PADRAO; const parcelas =
+                    Number(
+                        parcelasInput?.value
+                    );
 
             const pessoas =
                 Number(
@@ -2287,43 +2287,52 @@ document
 // DARK MODE
 // =====================================
 
+
 const toggleDarkMode =
-    document.getElementById(
-        "toggleDarkMode"
-    );
+    document.getElementById("toggleDarkMode");
+
+const iconeTema =
+    document.getElementById("iconeTema");
+
+const textoTema =
+    document.getElementById("textoTema");
 
 function atualizarBotaoTema() {
 
     if (!toggleDarkMode) return;
 
     const dark =
-        document.body
-            .classList.contains(
-                "dark-theme"
-            );
+        document.body.classList.contains("dark-theme");
 
-    toggleDarkMode.textContent =
-        dark
-            ? "Desativar"
-            : "Ativar";
+    if (iconeTema && textoTema) {
+
+        iconeTema.textContent =
+            dark ? "☀️" : "🌙";
+
+        textoTema.textContent =
+            dark ? "Ativar modo claro" : "Ativar modo escuro";
+
+    } else {
+
+        toggleDarkMode.textContent =
+            dark ? "☀️ Ativar modo claro" : "🌙 Ativar modo escuro";
+
+    }
 
 }
 
 function carregarTema() {
 
     const tema =
-        localStorage.getItem(
-            "tema"
-        );
+        localStorage.getItem("tema");
 
-    if (
-        tema === "dark"
-    ) {
+    if (tema === "dark" || tema === "escuro") {
 
-        document.body
-            .classList.add(
-                "dark-theme"
-            );
+        document.body.classList.add("dark-theme");
+
+    } else {
+
+        document.body.classList.remove("dark-theme");
 
     }
 
@@ -2333,22 +2342,14 @@ function carregarTema() {
 
 function alternarTema() {
 
-    document.body
-        .classList.toggle(
-            "dark-theme"
-        );
+    document.body.classList.toggle("dark-theme");
 
     const dark =
-        document.body
-            .classList.contains(
-                "dark-theme"
-            );
+        document.body.classList.contains("dark-theme");
 
     localStorage.setItem(
         "tema",
-        dark
-            ? "dark"
-            : "light"
+        dark ? "dark" : "light"
     );
 
     atualizarBotaoTema();
@@ -2356,10 +2357,7 @@ function alternarTema() {
 }
 
 toggleDarkMode
-    ?.addEventListener(
-        "click",
-        alternarTema
-    );
+    ?.addEventListener("click", alternarTema);
 
 // =====================================
 // EXPORTAR EXCEL
@@ -2405,9 +2403,9 @@ if (btnExcel) {
                             Funcao:
                                 operador?.funcao || "",
 
-                            
+
                             Local:
-                                obterNomeLocalProducao(prod.local),Unidade:
+                                obterNomeLocalProducao(prod.local), Unidade:
                                 obterUnidadeLocalProducao(prod.local),
 
                             Parcelas:
@@ -2913,7 +2911,7 @@ async function recalcularProducoes() {
 
         return {
             ...prod,
-            local,pessoas: pessoas || prod.pessoas,
+            local, pessoas: pessoas || prod.pessoas,
             meta,
             bonus
         };

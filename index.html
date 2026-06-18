@@ -104,10 +104,6 @@
 
             <nav>
 
-                <button class="menu-btn active" data-page="home">
-                    Dashboard
-                </button>
-
                 <button class="menu-btn" data-page="operadores">
                     Operadores
                 </button>
@@ -124,9 +120,14 @@
                     Metas
                 </button>
 
+                <button class="menu-btn active" data-page="home">
+                    Dashboard
+                </button>
+
                 <button class="menu-btn" data-page="relatorios">
                     Relatórios
                 </button>
+
 
                 <button class="menu-btn" data-page="configuracoes">
                     Configurações
@@ -369,7 +370,8 @@
 
                     <select id="operadorSelect"></select>
 
-                    <input type="number" id="parcelasInput" placeholder="Quantidade (Parcelas ou Hectares)" min="0.01" step="0.01" required>
+                    <input type="number" id="parcelasInput" placeholder="Quantidade (Parcelas ou Hectares)" min="0.01"
+                        step="0.01" required>
 
                     <input type="number" id="pessoasProducaoInput" placeholder="Quantidade de Pessoas" min="1" required>
 
@@ -533,11 +535,12 @@
                     <div class="card">
 
                         <h3>Exportar Excel</h3>
+                        <p class="card-note">
+                            Gera uma planilha com os lançamentos salvos para abrir e editar no Excel.
+                        </p>
 
-                        <button id="btnExcel" class="btn-primary" type="button">
-
+                        <button id="btnExcel" class="btn-primary">
                             Gerar Excel
-
                         </button>
 
                     </div>
@@ -578,10 +581,13 @@
 
                         <h3>Modo Escuro</h3>
 
-                        <button id="toggleDarkMode" class="btn-primary">
+                        <p class="card-note">
+                            Altera o visual do sistema para cores escuras, deixando a tela mais confortável à noite.
+                        </p>
 
-                            Ativar
-
+                        <button id="toggleDarkMode" class="btn-primary" type="button">
+                            <span id="iconeTema">🌙</span>
+                            <span id="textoTema">Ativar modo escuro</span>
                         </button>
 
                     </div>
@@ -652,10 +658,3 @@
 </body>
 
 </html>
-
-
-
-
-
-
-

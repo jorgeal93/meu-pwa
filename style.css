@@ -1080,3 +1080,23 @@ td .btn-danger {
     width: 100%;
   }
 }
+
+/* BOTÃO DO TEMA */
+#toggleDarkMode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+#toggleDarkMode span {
+  color: #ffffff !important;
+  font-size: 1rem !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+}
+
+#iconeTema {
+  font-size: 1.15rem !important;
+}
