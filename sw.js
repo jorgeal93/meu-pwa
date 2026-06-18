@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'v23_pwa_cache';
+﻿const CACHE_NAME = 'v25_pwa_cache';
 const ASSETS = [
     './',
     './index.html',
@@ -36,6 +36,8 @@ self.addEventListener('activate', (e) => {
         })
     );
 });
+
+
 
 
 

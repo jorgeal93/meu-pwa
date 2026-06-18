@@ -1,6 +1,6 @@
 ﻿{
-    "name": "Sistema de Gestão de Produção Florestal",
-    "short_name": "SPG",
+    "name": "GPF - Gestão de Produção Florestal",
+    "short_name": "GPF",
     "start_url": "./index.html",
     "display": "standalone",
     "background_color": "#f2f6f1",

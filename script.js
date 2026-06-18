@@ -1,5 +1,5 @@
 ﻿// =====================================
-// TESTE CONSULTORIA V2.1
+// GPF - GESTAO DE PRODUCAO FLORESTAL V2.1
 // PARTE 1
 // NUCLEO DO SISTEMA
 // =====================================
@@ -13,6 +13,236 @@ const loginForm = document.getElementById("loginForm");
 const loginPage = document.getElementById("loginPage");
 const dashboard = document.getElementById("dashboard");
 const logoutBtn = document.getElementById("logoutBtn");
+const appModal = document.getElementById("appModal");
+const modalTitle = document.getElementById("modalTitle");
+const modalBody = document.getElementById("modalBody");
+const modalActions = document.getElementById("modalActions");
+const modalClose = document.getElementById("modalClose");
+
+let modalResolver = null;
+
+function escapeHtml(valor) {
+
+    return String(valor ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
+
+function fecharModal(valor = null) {
+
+    if (!appModal) return;
+
+    appModal.classList.add("hidden");
+    modalBody.replaceChildren();
+    modalActions.replaceChildren();
+
+    if (modalResolver) {
+        const resolver = modalResolver;
+        modalResolver = null;
+        resolver(valor);
+    }
+
+}
+
+function abrirModalBase(titulo) {
+
+    if (!appModal || !modalTitle || !modalBody || !modalActions) {
+        return false;
+    }
+
+    modalTitle.textContent = titulo;
+    modalBody.replaceChildren();
+    modalActions.replaceChildren();
+    appModal.classList.remove("hidden");
+
+    return true;
+
+}
+
+function criarBotaoModal(texto, classe, acao) {
+
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = classe;
+    botao.textContent = texto;
+    botao.addEventListener("click", acao);
+    return botao;
+
+}
+
+function appAlert(mensagem, titulo = "Aviso") {
+
+    return new Promise(resolve => {
+
+        if (!abrirModalBase(titulo)) {
+            console.warn(mensagem);
+            resolve();
+            return;
+        }
+
+        modalResolver = resolve;
+
+        const texto = document.createElement("p");
+        texto.textContent = mensagem;
+        modalBody.appendChild(texto);
+
+        modalActions.appendChild(
+            criarBotaoModal(
+                "Entendi",
+                "btn-primary",
+                () => fecharModal()
+            )
+        );
+
+    });
+
+}
+
+function appConfirm(mensagem, titulo = "Confirmar") {
+
+    return new Promise(resolve => {
+
+        if (!abrirModalBase(titulo)) {
+            console.warn(mensagem);
+            resolve(false);
+            return;
+        }
+
+        modalResolver = resolve;
+
+        const texto = document.createElement("p");
+        texto.textContent = mensagem;
+        modalBody.appendChild(texto);
+
+        modalActions.append(
+            criarBotaoModal(
+                "Cancelar",
+                "btn-secondary",
+                () => fecharModal(false)
+            ),
+            criarBotaoModal(
+                "Confirmar",
+                "btn-primary",
+                () => fecharModal(true)
+            )
+        );
+
+    });
+
+}
+
+function criarCampoModal(campo, valores) {
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "form-field";
+
+    const label = document.createElement("label");
+    label.htmlFor = campo.id;
+    label.textContent = campo.label;
+    wrapper.appendChild(label);
+
+    let input;
+
+    if (campo.type === "select") {
+
+        input = document.createElement("select");
+
+        campo.options.forEach(opcao => {
+            const option = document.createElement("option");
+            option.value = opcao.value;
+            option.textContent = opcao.label;
+            input.appendChild(option);
+        });
+
+    } else {
+
+        input = document.createElement("input");
+        input.type = campo.type || "text";
+
+        if (campo.min !== undefined) input.min = campo.min;
+        if (campo.step !== undefined) input.step = campo.step;
+
+    }
+
+    input.id = campo.id;
+    input.name = campo.name;
+    input.required = campo.required !== false;
+    input.value = valores[campo.name] ?? "";
+    wrapper.appendChild(input);
+
+    return wrapper;
+
+}
+
+function appFormModal({ titulo, campos, valores = {}, textoSalvar = "Salvar" }) {
+
+    return new Promise(resolve => {
+
+        if (!abrirModalBase(titulo)) {
+            resolve(null);
+            return;
+        }
+
+        modalResolver = resolve;
+
+        const form = document.createElement("form");
+        form.className = "modal-form";
+
+        campos.forEach(campo => {
+            form.appendChild(
+                criarCampoModal(campo, valores)
+            );
+        });
+
+        form.addEventListener("submit", event => {
+            event.preventDefault();
+
+            const resultado = {};
+
+            campos.forEach(campo => {
+                resultado[campo.name] =
+                    form.elements[campo.name]?.value?.trim() || "";
+            });
+
+            fecharModal(resultado);
+        });
+
+        modalBody.appendChild(form);
+
+        modalActions.append(
+            criarBotaoModal(
+                "Cancelar",
+                "btn-secondary",
+                () => fecharModal(null)
+            ),
+            criarBotaoModal(
+                textoSalvar,
+                "btn-primary",
+                () => form.requestSubmit()
+            )
+        );
+
+    });
+
+}
+
+modalClose?.addEventListener("click", () => fecharModal(null));
+appModal?.addEventListener("click", event => {
+    if (event.target === appModal) fecharModal(null);
+});
+document.addEventListener("keydown", event => {
+    if (
+        event.key === "Escape" &&
+        appModal &&
+        !appModal.classList.contains("hidden")
+    ) {
+        fecharModal(null);
+    }
+});
 
 // =====================================
 // DADOS
@@ -58,7 +288,7 @@ if (dadosMigrados) {
 }
 
 // =====================================
-// TABELAS DE BÃ”NUS
+// TABELAS DE BONUS
 // =====================================
 
 const bonusLiderAte2Pessoas = [
@@ -125,10 +355,15 @@ function salvarDados() {
         JSON.stringify(metas)
     );
 
+    localStorage.setItem(
+        "gpfUltimaAlteracao",
+        new Date().toISOString()
+    );
+
 }
 
 // =====================================
-// LOGIN AUTOMÃTICO
+// LOGIN AUTOMATICO
 // =====================================
 
 if (
@@ -152,7 +387,7 @@ if (loginForm) {
 
     loginForm.addEventListener(
         "submit",
-        function (e) {
+        async function (e) {
 
             e.preventDefault();
 
@@ -186,8 +421,9 @@ if (loginForm) {
 
             } else {
 
-                alert(
-                    "Usuário ou senha inválidos."
+                await appAlert(
+                    "Usuário ou senha inválidos.",
+                    "Acesso negado"
                 );
 
             }
@@ -533,10 +769,10 @@ function calcularBonus(operador, quantidade, pessoas, local = LOCAL_PADRAO) {
 }
 // =====================================
 // PARTE 2
-// OPERADORES E PRODUÃ‡ÃƒO
+// OPERADORES E PRODUCAO
 // =====================================
 
-// FORMULÃRIOS
+// FORMULARIOS
 
 const operadorForm =
     document.getElementById(
@@ -589,7 +825,7 @@ if (operadorForm) {
 
     operadorForm.addEventListener(
         "submit",
-        function (e) {
+        async function (e) {
 
             e.preventDefault();
 
@@ -665,11 +901,12 @@ if (operadorForm) {
 // REMOVER OPERADOR
 // =====================================
 
-function removerOperador(id) {
+async function removerOperador(id) {
 
     const confirmar =
-        confirm(
-            "Deseja excluir este operador?"
+        await appConfirm(
+            "Deseja excluir este operador? As produções dele também serão removidas.",
+            "Excluir operador"
         );
 
     if (!confirmar) {
@@ -703,7 +940,7 @@ window.removerOperador =
 // EDITAR OPERADOR
 // =====================================
 
-function editarOperador(id) {
+async function editarOperador(id) {
 
     const operador =
         operadores.find(
@@ -712,63 +949,80 @@ function editarOperador(id) {
 
     if (!operador) return;
 
-    const novoNome =
-        prompt(
-            "Nome do operador:",
-            operador.nome
-        );
+    const dados =
+        await appFormModal({
+            titulo: "Editar operador",
+            textoSalvar: "Salvar operador",
+            valores: {
+                nome: operador.nome,
+                funcao: operador.funcao,
+                equipe: operador.equipe,
+                data: formatarDataInput(
+                    operador.dataCadastro
+                )
+            },
+            campos: [
+                {
+                    name: "nome",
+                    id: "modalOperadorNome",
+                    label: "Nome",
+                    type: "text"
+                },
+                {
+                    name: "funcao",
+                    id: "modalOperadorFuncao",
+                    label: "Função",
+                    type: "select",
+                    options: [
+                        { value: "lider", label: "Lider" },
+                        { value: "auxiliar", label: "Auxiliar" }
+                    ]
+                },
+                {
+                    name: "equipe",
+                    id: "modalOperadorEquipe",
+                    label: "Pessoas",
+                    type: "number",
+                    min: "1",
+                    step: "1"
+                },
+                {
+                    name: "data",
+                    id: "modalOperadorData",
+                    label: "Data",
+                    type: "date"
+                }
+            ]
+        });
 
-    if (novoNome === null) return;
-
-    const novaFuncao =
-        prompt(
-            "Função (lider ou auxiliar):",
-            operador.funcao
-        );
-
-    if (novaFuncao === null) return;
-
-    const novaEquipe =
-        prompt(
-            "Quantidade de pessoas:",
-            operador.equipe
-        );
-
-    if (novaEquipe === null) return;
-
-    const novaData =
-        prompt(
-            "Data do operador (AAAA-MM-DD):",
-            formatarDataInput(
-                operador.dataCadastro
-            )
-        );
-
-    if (novaData === null) return;
+    if (!dados) return;
 
     const nome =
-        novoNome.trim();
+        dados.nome.trim();
 
     const funcao =
-        novaFuncao.trim().toLowerCase();
+        dados.funcao.trim().toLowerCase();
 
     const equipe =
-        Number(novaEquipe);
+        Number(dados.equipe);
 
     if (
         !nome ||
         !["lider", "auxiliar"].includes(funcao) ||
         !equipe ||
-        !/^\d{4}-\d{2}-\d{2}$/.test(novaData)
+        !/^\d{4}-\d{2}-\d{2}$/.test(dados.data)
     ) {
-        alert("Informe nome, função, pessoas e data válidos.");
+        await appAlert(
+            "Informe nome, função, pessoas e data válidos.",
+            "Dados inválidos"
+        );
         return;
     }
 
     operador.nome = nome;
     operador.funcao = funcao;
     operador.equipe = String(equipe);
-    operador.dataCadastro = criarDataProducao(novaData).toISOString();
+    operador.dataCadastro = criarDataProducao(dados.data).toISOString();
 
     salvarDados();
     atualizarSistema();
@@ -781,14 +1035,94 @@ window.editarOperador =
 function formatarFuncaoOperador(funcao) {
 
     if (funcao === "lider") {
-        return '<span class="badge-lider">Lider</span>';
+        return "Lider";
     }
 
     if (funcao === "auxiliar") {
-        return '<span class="badge-auxiliar">Auxiliar</span>';
+        return "Auxiliar";
     }
 
     return funcao || "-";
+
+}
+
+function criarCelulaTexto(texto) {
+
+    const td = document.createElement("td");
+    td.textContent = texto ?? "-";
+    return td;
+
+}
+
+function criarCelulaElemento(elemento) {
+
+    const td = document.createElement("td");
+    td.appendChild(elemento);
+    return td;
+
+}
+
+function criarBadgeFuncao(funcao) {
+
+    const span = document.createElement("span");
+
+    if (funcao === "lider") {
+        span.className = "badge-lider";
+        span.textContent = "Lider";
+        return span;
+    }
+
+    if (funcao === "auxiliar") {
+        span.className = "badge-auxiliar";
+        span.textContent = "Auxiliar";
+        return span;
+    }
+
+    span.textContent = funcao || "-";
+    return span;
+
+}
+
+function criarBotaoAcao(texto, classe, acao) {
+
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = classe;
+    botao.textContent = texto;
+    botao.addEventListener("click", acao);
+    return botao;
+
+}
+
+function criarCelulaAcoes(acoes) {
+
+    const td = document.createElement("td");
+    const wrapper = document.createElement("div");
+    wrapper.className = "action-buttons";
+
+    acoes.forEach(acao => {
+        wrapper.appendChild(
+            criarBotaoAcao(
+                acao.texto,
+                acao.classe,
+                acao.evento
+            )
+        );
+    });
+
+    td.appendChild(wrapper);
+    return td;
+
+}
+
+function criarLinhaMensagem(colunas, mensagem) {
+
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = colunas;
+    td.textContent = mensagem;
+    tr.appendChild(td);
+    return tr;
 
 }
 
@@ -805,54 +1139,33 @@ function renderOperadores() {
 
     if (!tabela) return;
 
-    tabela.innerHTML = "";
+    tabela.replaceChildren();
 
     operadores.forEach(op => {
 
-        const data =
-            formatarDataTabela(
-                op.dataCadastro
-            );
+        const tr = document.createElement("tr");
+        const data = formatarDataTabela(op.dataCadastro);
 
-        tabela.innerHTML += `
+        tr.append(
+            criarCelulaTexto(op.nome),
+            criarCelulaElemento(criarBadgeFuncao(op.funcao)),
+            criarCelulaTexto(op.equipe),
+            criarCelulaTexto(data),
+            criarCelulaAcoes([
+                {
+                    texto: "Editar",
+                    classe: "btn-primary",
+                    evento: () => editarOperador(op.id)
+                },
+                {
+                    texto: "Excluir",
+                    classe: "btn-danger",
+                    evento: () => removerOperador(op.id)
+                }
+            ])
+        );
 
-        <tr>
-
-            <td>${op.nome}</td>
-
-            <td>${formatarFuncaoOperador(op.funcao)}</td>
-
-            <td>${op.equipe}</td>
-
-            <td>${data}</td>
-
-            <td>
-
-                <div class="action-buttons">
-
-                    <button
-                        class="btn-primary"
-                        onclick="editarOperador(${op.id})">
-
-                        Editar
-
-                    </button>
-
-                    <button
-                        class="btn-danger"
-                        onclick="removerOperador(${op.id})">
-
-                        Excluir
-
-                    </button>
-
-                </div>
-
-            </td>
-
-        </tr>
-
-        `;
+        tabela.appendChild(tr);
 
     });
 
@@ -1009,10 +1322,15 @@ function atualizarPreviewProducao() {
                     local
                 );
 
-    previewBonus.innerHTML = `
-        <strong>Prévia:</strong>
-        ${obterNomeLocalProducao(local)} · Meta ${meta} · ${formatarMoeda(bonus)}
-    `;
+    const destaque = document.createElement("strong");
+    destaque.textContent = "Prévia:";
+
+    previewBonus.replaceChildren(
+        destaque,
+        document.createTextNode(
+            ` ${obterNomeLocalProducao(local)} · Meta ${meta} · ${formatarMoeda(bonus)}`
+        )
+    );
 
     previewBonus.classList.add(
         "preview-bonus-ok"
@@ -1034,20 +1352,14 @@ function renderSelectOperadores() {
 
     if (select) {
 
-        select.innerHTML = "";
+        select.replaceChildren();
 
         operadores.forEach(op => {
 
-            select.innerHTML += `
-
-            <option value="${op.id}">
-
-                ${op.nome}
-                (${op.funcao})
-
-            </option>
-
-            `;
+            const option = document.createElement("option");
+            option.value = op.id;
+            option.textContent = `${op.nome} (${op.funcao})`;
+            select.appendChild(option);
 
         });
 
@@ -1055,25 +1367,19 @@ function renderSelectOperadores() {
 
     if (filtro) {
 
-        filtro.innerHTML = `
+        filtro.replaceChildren();
 
-        <option value="">
-            Todos Operadores
-        </option>
-
-        `;
+        const todos = document.createElement("option");
+        todos.value = "";
+        todos.textContent = "Todos Operadores";
+        filtro.appendChild(todos);
 
         operadores.forEach(op => {
 
-            filtro.innerHTML += `
-
-            <option value="${op.id}">
-
-                ${op.nome}
-
-            </option>
-
-            `;
+            const option = document.createElement("option");
+            option.value = op.id;
+            option.textContent = op.nome;
+            filtro.appendChild(option);
 
         });
 
@@ -1211,7 +1517,7 @@ function renderProducoes() {
 
     if (!tabela) return;
 
-    tabela.innerHTML = "";
+    tabela.replaceChildren();
 
     producoes
         .slice()
@@ -1224,74 +1530,46 @@ function renderProducoes() {
                 );
 
             const data =
-                new Date(
+                formatarDataTabela(
                     prod.data
-                ).toLocaleDateString(
-                    "pt-BR"
                 );
 
-            tabela.innerHTML += `
+            const tr = document.createElement("tr");
 
-            <tr>
-
-                <td>
-                    ${operador
-                        ? operador.nome
-                        : "-"
+            tr.append(
+                criarCelulaTexto(operador ? operador.nome : "-"),
+                criarCelulaTexto(obterNomeLocalProducao(prod.local)),
+                criarCelulaTexto(prod.parcelas),
+                criarCelulaTexto(prod.pessoas || operador?.equipe || "-"),
+                criarCelulaTexto(obterMetaProducao(prod, operador)),
+                criarCelulaTexto(formatarMoeda(prod.bonus)),
+                criarCelulaTexto(data),
+                criarCelulaAcoes([
+                    {
+                        texto: "Editar",
+                        classe: "btn-primary",
+                        evento: () => editarProducao(prod.id)
+                    },
+                    {
+                        texto: "Excluir",
+                        classe: "btn-danger",
+                        evento: () => removerProducao(prod.id)
                     }
-                </td>
+                ])
+            );
 
-                <td>
-                    ${obterNomeLocalProducao(prod.local)}
-                </td><td>
-                    ${prod.parcelas}
-                </td>
-
-                <td>
-                    ${prod.pessoas || operador?.equipe || "-"}
-                </td>
-
-                <td>
-                    ${obterMetaProducao(prod, operador)}
-                </td>
-
-                <td>
-                    ${formatarMoeda(prod.bonus)}
-                </td>
-
-                <td>
-                    ${data}
-                </td>
-
-                <td>
-                    <div class="action-buttons">
-                        <button
-                            class="btn-primary"
-                            onclick="editarProducao(${prod.id})">
-                            Editar
-                        </button>
-
-                        <button
-                            class="btn-danger"
-                            onclick="removerProducao(${prod.id})">
-                            Excluir
-                        </button>
-                    </div>
-                </td>
-
-            </tr>
-
-            `;
+            tabela.appendChild(tr);
 
         });
 
 }
 
-function removerProducao(id) {
+async function removerProducao(id) {
 
     const confirmar =
-        confirm(
-            "Deseja excluir este lançamento?"
+        await appConfirm(
+            "Deseja excluir este lançamento?",
+            "Excluir produção"
         );
 
     if (!confirmar) return;
@@ -1309,7 +1587,7 @@ function removerProducao(id) {
 
 window.removerProducao =
     removerProducao;
-function editarProducao(id) {
+async function editarProducao(id) {
 
     const prod =
         producoes.find(
@@ -1324,59 +1602,80 @@ function editarProducao(id) {
         );
 
     if (!operador) {
-        alert("Operador não encontrado para este lançamento.");
+        await appAlert(
+            "Operador não encontrado para este lançamento.",
+            "Não foi possível editar"
+        );
         return;
     }
 
     const localAtual =
         obterLocalProducao(prod.local);
 
-    const novoLocal =
-        prompt(
-            "Local/atividade (klabin_pr_sp, klabin_ifc, valor_mg, arauco_ms, klabin_ls):",
-            localAtual
-        );
+    const dados =
+        await appFormModal({
+            titulo: "Editar produção",
+            textoSalvar: "Salvar produção",
+            valores: {
+                local: localAtual,
+                quantidade: prod.parcelas,
+                pessoas: prod.pessoas || operador.equipe || "",
+                data: formatarDataInput(prod.data)
+            },
+            campos: [
+                {
+                    name: "local",
+                    id: "modalProducaoLocal",
+                    label: "Local/Atividade",
+                    type: "select",
+                    options: Object.entries(locaisProducao)
+                        .map(([value, config]) => ({
+                            value,
+                            label: config.nome
+                        }))
+                },
+                {
+                    name: "quantidade",
+                    id: "modalProducaoQuantidade",
+                    label: "Quantidade",
+                    type: "number",
+                    min: "0.01",
+                    step: "0.01"
+                },
+                {
+                    name: "pessoas",
+                    id: "modalProducaoPessoas",
+                    label: "Pessoas",
+                    type: "number",
+                    min: "1",
+                    step: "1"
+                },
+                {
+                    name: "data",
+                    id: "modalProducaoData",
+                    label: "Data",
+                    type: "date"
+                }
+            ]
+        });
 
-    if (novoLocal === null) return;
+    if (!dados) return;
 
     const local =
-        obterLocalProducao(
-            novoLocal.trim()
-        );const novasParcelas =
-        prompt(
-            obterUnidadeLocalProducao(local) === "hectares"
-                ? "Quantidade em hectares:"
-                : "Quantidade de parcelas:",
-            prod.parcelas
-        );
+        obterLocalProducao(dados.local);
 
-    if (novasParcelas === null) return;
-
-    const novasPessoas =
-        prompt(
-            "Quantidade de pessoas:",
-            prod.pessoas || operador.equipe || ""
-        );
-
-    if (novasPessoas === null) return;
-
-    const novaData =
-        prompt(
-            "Data da produção (AAAA-MM-DD):",
-            formatarDataInput(prod.data)
-        );
-
-    if (novaData === null) return;
-
-    const parcelas = Number(novasParcelas);
-    const pessoas = Number(novasPessoas);
+    const parcelas = Number(dados.quantidade);
+    const pessoas = Number(dados.pessoas);
 
     if (
         !parcelas ||
         !pessoas ||
-        !/^\d{4}-\d{2}-\d{2}$/.test(novaData)
+        !/^\d{4}-\d{2}-\d{2}$/.test(dados.data)
     ) {
-        alert("Informe quantidade, pessoas e data válidas.");
+        await appAlert(
+            "Informe quantidade, pessoas e data válidas.",
+            "Dados inválidos"
+        );
         return;
     }
 
@@ -1399,7 +1698,7 @@ function editarProducao(id) {
     prod.pessoas = pessoas;
     prod.meta = meta;
     prod.bonus = bonus;
-    prod.data = criarDataProducao(novaData).toISOString();
+    prod.data = criarDataProducao(dados.data).toISOString();
 
     salvarDados();
     atualizarSistema();
@@ -1415,7 +1714,7 @@ window.editarProducao =
 let chart;
 
 // =====================================
-// PRODUÃ‡ÃƒO HOJE
+// PRODUCAO HOJE
 // =====================================
 
 function calcularProducaoHoje() {
@@ -1437,7 +1736,7 @@ function calcularProducaoHoje() {
 }
 
 // =====================================
-// PRODUÃ‡ÃƒO SEMANA
+// PRODUCAO SEMANA
 // =====================================
 
 function calcularProducaoSemana() {
@@ -1639,7 +1938,7 @@ if (metaForm) {
 
     metaForm.addEventListener(
         "submit",
-        function (e) {
+        async function (e) {
 
             e.preventDefault();
 
@@ -1665,8 +1964,9 @@ if (metaForm) {
 
             atualizarMetas();
 
-            alert(
-                "Metas salvas!"
+            await appAlert(
+                "Metas salvas!",
+                "Configuração atualizada"
             );
 
         }
@@ -1743,7 +2043,7 @@ function atualizarMetas() {
 }
 
 // =====================================
-// GRÃFICO
+// GRAFICO
 // =====================================
 
 function atualizarGrafico() {
@@ -1829,7 +2129,7 @@ function atualizarGrafico() {
 }
 // =====================================
 // PARTE 4
-// HISTÃ“RICO
+// HISTORICO
 // =====================================
 
 function renderHistorico(
@@ -1843,17 +2143,16 @@ function renderHistorico(
 
     if (!tabela) return;
 
-    tabela.innerHTML = "";
+    tabela.replaceChildren();
 
     if (lista.length === 0) {
 
-        tabela.innerHTML = `
-        <tr>
-            <td colspan="10">
-                Nenhum registro encontrado
-            </td>
-        </tr>
-        `;
+        tabela.appendChild(
+            criarLinhaMensagem(
+                9,
+                "Nenhum registro encontrado"
+            )
+        );
 
         return;
 
@@ -1870,53 +2169,25 @@ function renderHistorico(
                 );
 
             const data =
-                new Date(
+                formatarDataTabela(
                     prod.data
-                ).toLocaleDateString(
-                    "pt-BR"
                 );
 
-            tabela.innerHTML += `
+            const tr = document.createElement("tr");
 
-            <tr>
+            tr.append(
+                criarCelulaTexto(operador?.equipe || "-"),
+                criarCelulaTexto(operador?.nome || "-"),
+                criarCelulaTexto(formatarFuncaoOperador(operador?.funcao)),
+                criarCelulaTexto(obterNomeLocalProducao(prod.local)),
+                criarCelulaTexto(prod.parcelas),
+                criarCelulaTexto(prod.pessoas || operador?.equipe || "-"),
+                criarCelulaTexto(obterMetaProducao(prod, operador)),
+                criarCelulaTexto(formatarMoeda(prod.bonus)),
+                criarCelulaTexto(data)
+            );
 
-                <td>
-                    ${operador?.equipe || "-"}
-                </td>
-
-                <td>
-                    ${operador?.nome || "-"}
-                </td>
-
-                <td>
-                    ${operador?.funcao || "-"}
-                </td>
-
-                <td>
-                    ${obterNomeLocalProducao(prod.local)}
-                </td><td>
-                    ${prod.parcelas}
-                </td>
-
-                <td>
-                    ${prod.pessoas || operador?.equipe || "-"}
-                </td>
-
-                <td>
-                    ${obterMetaProducao(prod, operador)}
-                </td>
-
-                <td>
-                    ${formatarMoeda(prod.bonus)}
-                </td>
-
-                <td>
-                    ${data}
-                </td>
-
-            </tr>
-
-            `;
+            tabela.appendChild(tr);
 
         });
 
@@ -2182,33 +2453,434 @@ if (btnExcel) {
 
 }
 
+
 // =====================================
-// PDF FUTURO
+// EXPORTAR PDF
 // =====================================
 
-document
-    .getElementById(
-        "btnPDF"
-    )
-    ?.addEventListener(
-        "click",
-        () => {
-
-            alert(
-                "PDF será implementado na V2.2"
-            );
-
-        }
+const btnPdf =
+    document.getElementById(
+        "btnPdf"
     );
 
+function obterDadosRelatorioProducao() {
+
+    return producoes
+        .slice()
+        .sort(
+            (a, b) =>
+                new Date(a.data) -
+                new Date(b.data)
+        )
+        .map(prod => {
+
+            const operador =
+                obterOperadorPorId(
+                    prod.operadorId
+                );
+
+            return {
+                data:
+                    formatarDataTabela(
+                        prod.data
+                    ),
+                equipe:
+                    operador?.equipe || "-",
+                operador:
+                    operador?.nome || "-",
+                funcao:
+                    formatarFuncaoOperador(
+                        operador?.funcao
+                    ),
+                local:
+                    obterNomeLocalProducao(
+                        prod.local
+                    ),
+                producao:
+                    String(
+                        prod.parcelas ?? "-"
+                    ),
+                pessoas:
+                    String(
+                        prod.pessoas ||
+                        operador?.equipe ||
+                        "-"
+                    ),
+                meta:
+                    String(
+                        obterMetaProducao(
+                            prod,
+                            operador
+                        )
+                    ),
+                bonus:
+                    formatarMoeda(
+                        prod.bonus
+                    )
+            };
+
+        });
+
+}
+
+function somarProducaoRelatorio() {
+
+    return producoes.reduce(
+        (total, prod) =>
+            total + Number(prod.parcelas || 0),
+        0
+    );
+
+}
+
+function somarExtraRelatorio() {
+
+    return producoes.reduce(
+        (total, prod) =>
+            total + Number(prod.bonus || 0),
+        0
+    );
+
+}
+
+function textoPdf(doc, texto, x, y, largura) {
+
+    const linhas =
+        doc.splitTextToSize(
+            String(texto ?? "-"),
+            largura
+        );
+
+    doc.text(linhas, x, y);
+
+    return linhas.length;
+
+}
+
+function desenharCabecalhoTabelaPdf(doc, colunas, margem, y) {
+
+    doc.setFillColor(21, 63, 43);
+    doc.setTextColor(255, 255, 255);
+    doc.setDrawColor(217, 228, 220);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+
+    let x = margem;
+
+    colunas.forEach(coluna => {
+
+        doc.rect(
+            x,
+            y,
+            coluna.largura,
+            8,
+            "FD"
+        );
+
+        doc.text(
+            coluna.titulo,
+            x + 2,
+            y + 5.2
+        );
+
+        x += coluna.largura;
+
+    });
+
+    return y + 8;
+
+}
+
+function normalizarTextoPdf(valor) {
+
+    return String(valor ?? "-")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[–—]/g, "-")
+        .replace(/[“”]/g, '"')
+        .replace(/[‘’]/g, "'")
+        .replace(/\s+/g, " ")
+        .trim() || "-";
+
+}
+
+function desenharTituloPdf(doc, margem, y) {
+
+    doc.setTextColor(20, 37, 27);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(
+        "GPF | Relatorio de Producao Florestal",
+        margem,
+        y
+    );
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(97, 112, 100);
+    doc.text(
+        `Gerado em ${new Date().toLocaleString("pt-BR")}`,
+        margem,
+        y + 7
+    );
+
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(20, 37, 27);
+    doc.text(
+        `Lancamentos: ${producoes.length}`,
+        margem,
+        y + 16
+    );
+    doc.text(
+        `Producao total: ${somarProducaoRelatorio()}`,
+        margem + 48,
+        y + 16
+    );
+    doc.text(
+        `Valor extra total: ${formatarMoeda(somarExtraRelatorio())}`,
+        margem + 104,
+        y + 16
+    );
+
+}
+
+function adicionarRodapePdf(doc, margem) {
+
+    const larguraPagina =
+        doc.internal.pageSize.getWidth();
+    const alturaPagina =
+        doc.internal.pageSize.getHeight();
+    const totalPaginas =
+        doc.internal.getNumberOfPages();
+
+    for (let pagina = 1; pagina <= totalPaginas; pagina += 1) {
+
+        doc.setPage(pagina);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(97, 112, 100);
+        doc.text(
+            `Pagina ${pagina} de ${totalPaginas}`,
+            larguraPagina - margem,
+            alturaPagina - 6,
+            { align: "right" }
+        );
+
+    }
+
+}
+
+function gerarPdfFallbackSimples(doc, linhas, margem) {
+
+    const larguraPagina =
+        doc.internal.pageSize.getWidth();
+    const alturaPagina =
+        doc.internal.pageSize.getHeight();
+    const limiteInferior =
+        alturaPagina - 18;
+    const larguraCard =
+        larguraPagina - margem * 2;
+
+    let y = 44;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.setFillColor(21, 63, 43);
+    doc.rect(margem, y, larguraCard, 8, "F");
+    doc.text("Lancamentos", margem + 3, y + 5.5);
+    y += 10;
+
+    linhas.forEach((linha, indice) => {
+
+        if (y + 18 > limiteInferior) {
+            doc.addPage();
+            y = 14;
+        }
+
+        doc.setFillColor(
+            indice % 2 === 0 ? 247 : 255,
+            indice % 2 === 0 ? 250 : 255,
+            indice % 2 === 0 ? 246 : 255
+        );
+        doc.setDrawColor(217, 228, 220);
+        doc.rect(margem, y, larguraCard, 17, "FD");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7.8);
+        doc.setTextColor(20, 37, 27);
+        doc.text(
+            normalizarTextoPdf(
+                `${linha.data} | ${linha.operador} | ${linha.local}`
+            ),
+            margem + 3,
+            y + 5.3
+        );
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.4);
+        doc.text(
+            normalizarTextoPdf(
+                `Funcao: ${linha.funcao} | Producao: ${linha.producao} | Pessoas: ${linha.pessoas} | Meta: ${linha.meta} | Extra: ${linha.bonus}`
+            ),
+            margem + 3,
+            y + 12
+        );
+
+        y += 19;
+
+    });
+
+}
+
+async function gerarPdfRelatorio() {
+
+    if (producoes.length === 0) {
+
+        await appAlert(
+            "Não existem lançamentos para gerar o PDF.",
+            "Relatório vazio"
+        );
+
+        return;
+
+    }
+
+    const JsPdf =
+        window.jspdf?.jsPDF;
+
+    if (!JsPdf) {
+
+        await appAlert(
+            "A biblioteca de PDF não carregou. Verifique a internet e atualize a página.",
+            "PDF indisponível"
+        );
+
+        return;
+
+    }
+
+    const doc =
+        new JsPdf({
+            orientation: "landscape",
+            unit: "mm",
+            format: "a4"
+        });
+
+    const margem = 10;
+    const linhas =
+        obterDadosRelatorioProducao();
+
+    doc.setProperties({
+        title: "Relatorio de Producao - GPF"
+    });
+
+    desenharTituloPdf(doc, margem, 14);
+
+    const cabecalho = [
+        "Data",
+        "Equipe",
+        "Operador",
+        "Funcao",
+        "Local",
+        "Producao",
+        "Pessoas",
+        "Meta",
+        "Extra"
+    ];
+
+    const corpo =
+        linhas.map(linha => [
+            linha.data,
+            linha.equipe,
+            linha.operador,
+            linha.funcao,
+            linha.local,
+            linha.producao,
+            linha.pessoas,
+            linha.meta,
+            linha.bonus
+        ].map(normalizarTextoPdf));
+
+    if (typeof doc.autoTable === "function") {
+
+        doc.autoTable({
+            startY: 42,
+            head: [cabecalho],
+            body: corpo,
+            theme: "grid",
+            margin: {
+                left: margem,
+                right: margem,
+                bottom: 14
+            },
+            tableWidth: "wrap",
+            styles: {
+                font: "helvetica",
+                fontSize: 7.1,
+                cellPadding: 1.6,
+                overflow: "linebreak",
+                valign: "middle",
+                textColor: [20, 37, 27],
+                lineColor: [217, 228, 220],
+                lineWidth: 0.15
+            },
+            headStyles: {
+                fillColor: [21, 63, 43],
+                textColor: [255, 255, 255],
+                fontStyle: "bold",
+                halign: "left"
+            },
+            alternateRowStyles: {
+                fillColor: [247, 250, 246]
+            },
+            columnStyles: {
+                0: { cellWidth: 20 },
+                1: { cellWidth: 16 },
+                2: { cellWidth: 36 },
+                3: { cellWidth: 20 },
+                4: { cellWidth: 58 },
+                5: { cellWidth: 24, halign: "right" },
+                6: { cellWidth: 20, halign: "right" },
+                7: { cellWidth: 16, halign: "right" },
+                8: { cellWidth: 28, halign: "right" }
+            }
+        });
+
+    } else {
+
+        gerarPdfFallbackSimples(
+            doc,
+            linhas,
+            margem
+        );
+
+    }
+
+    adicionarRodapePdf(doc, margem);
+
+    doc.save("Relatorio_Producao_GPF.pdf");
+
+}
+
+btnPdf
+    ?.addEventListener(
+        "click",
+        gerarPdfRelatorio
+    );
 
 // =====================================
 // MANUTENÇÃO DOS DADOS
 // =====================================
 
-function recalcularProducoes() {
+async function recalcularProducoes() {
 
-    if (!confirm("Deseja recalcular todos os lançamentos com a regra atual?")) {
+    if (
+        !await appConfirm(
+            "Deseja recalcular todos os lançamentos com a regra atual?",
+            "Recalcular produções"
+        )
+    ) {
         return;
     }
 
@@ -2251,7 +2923,10 @@ function recalcularProducoes() {
     salvarDados();
     atualizarSistema();
 
-    alert("Produções recalculadas!");
+    await appAlert(
+        "Produções recalculadas!",
+        "Tudo certo"
+    );
 
 }
 function exportarBackup() {
@@ -2279,6 +2954,13 @@ function exportarBackup() {
 
     URL.revokeObjectURL(link.href);
 
+    localStorage.setItem(
+        "gpfUltimoBackup",
+        new Date().toISOString()
+    );
+
+    atualizarStatusBackup();
+
 }
 
 function importarBackupArquivo(arquivo) {
@@ -2287,7 +2969,7 @@ function importarBackupArquivo(arquivo) {
 
     const leitor = new FileReader();
 
-    leitor.onload = () => {
+    leitor.onload = async () => {
 
         try {
 
@@ -2297,7 +2979,12 @@ function importarBackupArquivo(arquivo) {
                 throw new Error("Backup inválido.");
             }
 
-            if (!confirm("Importar este backup vai substituir os dados atuais. Deseja continuar?")) {
+            if (
+                !await appConfirm(
+                    "Importar este backup vai substituir os dados atuais. Deseja continuar?",
+                    "Importar backup"
+                )
+            ) {
                 return;
             }
 
@@ -2309,17 +2996,74 @@ function importarBackupArquivo(arquivo) {
             carregarMetas();
             atualizarSistema();
 
-            alert("Backup importado com sucesso!");
+            await appAlert(
+                "Backup importado com sucesso!",
+                "Dados restaurados"
+            );
 
         } catch (erro) {
 
-            alert("Não foi possível importar o backup.");
+            await appAlert(
+                "Não foi possível importar o backup.",
+                "Erro no backup"
+            );
 
         }
 
     };
 
     leitor.readAsText(arquivo);
+
+}
+
+function formatarDataHora(dataIso) {
+
+    if (!dataIso) return "";
+
+    const data = new Date(dataIso);
+
+    if (Number.isNaN(data.getTime())) return "";
+
+    return data.toLocaleString(
+        "pt-BR",
+        {
+            dateStyle: "short",
+            timeStyle: "short"
+        }
+    );
+
+}
+
+function atualizarStatusBackup() {
+
+    const status =
+        document.getElementById("backupStatus");
+
+    if (!status) return;
+
+    const ultimoBackup =
+        localStorage.getItem("gpfUltimoBackup");
+
+    const ultimaAlteracao =
+        localStorage.getItem("gpfUltimaAlteracao");
+
+    if (!ultimoBackup) {
+        status.textContent =
+            "Nenhum backup exportado ainda. Exporte um backup para proteger seus dados.";
+        return;
+    }
+
+    const backupData = new Date(ultimoBackup);
+    const alteracaoData = new Date(ultimaAlteracao || ultimoBackup);
+
+    if (alteracaoData > backupData) {
+        status.textContent =
+            `Último backup: ${formatarDataHora(ultimoBackup)}. Existem alterações depois dele.`;
+        return;
+    }
+
+    status.textContent =
+        `Último backup: ${formatarDataHora(ultimoBackup)}. Dados protegidos.`;
 
 }
 
@@ -2381,10 +3125,12 @@ function atualizarSistema() {
 
     atualizarPreviewProducao();
 
+    atualizarStatusBackup();
+
 }
 
 // =====================================
-// INICIALIZAÃ‡ÃƒO
+// INICIALIZACAO
 // =====================================
 
 carregarTema();

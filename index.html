@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPG | Gestão de Produção Florestal</title>
+    <title>GPF | Gestão de Produção Florestal</title>
 
     <link rel="stylesheet" href="style.css">
 
@@ -38,9 +38,9 @@
 
             <div class="login-logo">
 
-                <img src="icone-512.png" alt="SPG">
+                <img src="icone-512.png" alt="GPF">
 
-                <h1>SPG</h1>
+                <h1>GPF</h1>
 
                 <p>
                     Gestão de Produção Florestal
@@ -76,8 +76,7 @@
 
             <span class="login-info">
 
-                Usuário: admin |
-                Senha: admin
+                Acesso restrito aos responsáveis pela produção.
 
             </span>
 
@@ -95,9 +94,9 @@
 
             <div class="logo">
 
-                <img src="icone-192.png" alt="SPG">
+                <img src="icone-192.png" alt="GPF">
                 <div>
-                    <h2>SPG</h2>
+                    <h2>GPF</h2>
                     <span>Produção Florestal</span>
                 </div>
 
@@ -143,7 +142,7 @@
 
         </aside>
 
-        <!-- CONTEÃšDO -->
+        <!-- CONTEUDO -->
 
         <main class="content">
 
@@ -535,7 +534,7 @@
 
                         <h3>Exportar Excel</h3>
 
-                        <button id="btnExcel" class="btn-primary">
+                        <button id="btnExcel" class="btn-primary" type="button">
 
                             Gerar Excel
 
@@ -547,7 +546,11 @@
 
                         <h3>Exportar PDF</h3>
 
-                        <button id="btnPDF" class="btn-primary">
+                        <p class="card-note">
+                            Gera um relatório resumido com os lançamentos salvos.
+                        </p>
+
+                        <button id="btnPdf" class="btn-primary" type="button">
 
                             Gerar PDF
 
@@ -586,6 +589,9 @@
                     <div class="card">
 
                         <h3>Manutenção</h3>
+                        <p class="card-note" id="backupStatus">
+                            Faça backup com frequência para proteger os dados salvos neste navegador.
+                        </p>
 
                         <div class="action-stack">
 
@@ -622,17 +628,30 @@
 
     </section>
 
+    <div id="appModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="modalTitle">Mensagem</h2>
+                <button id="modalClose" class="modal-close" type="button" aria-label="Fechar">×</button>
+            </div>
+            <div id="modalBody" class="modal-body"></div>
+            <div id="modalActions" class="modal-actions"></div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
     <script src="script.js"></script>
 
 </body>
 
 </html>
-
-
 
 
 
