@@ -626,7 +626,7 @@ const locaisProducao = {
             mais2: {
                 meta: 14,
                 lider: { valores: [13, 28, 45, 64, 84, 104, 124, 144, 164, 184], incremento: 20 },
-                auxiliar: { valores: [8, 18, 30, 44, 59, 74, 89, 104, 119, 134], incremento: 15 }
+                auxiliar: { valores: [8, 18, 30, 44, 59, 74, 67, 85, 115, 134], incremento: 19 }
             }
         }
     },
@@ -3136,7 +3136,6 @@ carregarTema();
 carregarMetas();
 
 atualizarSistema();
-
 
 
 
