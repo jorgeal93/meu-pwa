@@ -830,6 +830,53 @@ const previewBonus =
         "previewBonus"
     );
 
+function normalizarNomeOperador(nome) {
+
+    return String(nome || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ");
+
+}
+
+function encontrarOperadorComMesmoNome(nome, ignorarId = null) {
+
+    const nomeNormalizado =
+        normalizarNomeOperador(nome);
+
+    if (!nomeNormalizado) return null;
+
+    return operadores.find(op =>
+        normalizarNomeOperador(op.nome) === nomeNormalizado &&
+        Number(op.id) !== Number(ignorarId)
+    ) || null;
+
+}
+
+function obterOperadoresUnicosPorNome() {
+
+    const nomesUsados = new Set();
+
+    return operadores.filter(op => {
+
+        const chave =
+            normalizarNomeOperador(op.nome);
+
+        if (!chave) return false;
+
+        if (nomesUsados.has(chave)) {
+            return false;
+        }
+
+        nomesUsados.add(chave);
+        return true;
+
+    });
+
+}
+
 // =====================================
 // CADASTRAR OPERADOR
 // =====================================
@@ -1367,7 +1414,7 @@ function renderSelectOperadores() {
 
         select.replaceChildren();
 
-        operadores.forEach(op => {
+        obterOperadoresUnicosPorNome().forEach(op => {
 
             const option = document.createElement("option");
             option.value = op.id;
@@ -1387,7 +1434,7 @@ function renderSelectOperadores() {
         todos.textContent = "Todos Operadores";
         filtro.appendChild(todos);
 
-        operadores.forEach(op => {
+        obterOperadoresUnicosPorNome().forEach(op => {
 
             const option = document.createElement("option");
             option.value = op.id;

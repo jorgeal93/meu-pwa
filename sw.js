@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v29_gpf_v2_3_cache';
+const CACHE_NAME = 'v32_gpf_mobile_select_unico_cache';
 const ASSETS = [
     './',
     './index.html',
