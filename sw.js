@@ -1,13 +1,17 @@
-﻿const CACHE_NAME = 'v26_pwa_cache';
+const CACHE_NAME = 'v28_gpf_v2_2_sem_assinatura_cache';
 const ASSETS = [
     './',
     './index.html',
     './style.css',
-    './script.js'
+    './script.js',
+    './manifest.json',
+    './icone-192.png',
+    './icone-512.png'
 ];
 
 // Instala o Service Worker e guarda os arquivos no cache
 self.addEventListener('install', (e) => {
+    self.skipWaiting();
     e.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll(ASSETS);
@@ -27,37 +31,14 @@ self.addEventListener('fetch', (e) => {
 // Atualiza o cache antigo quando houver nova versao dos arquivos
 self.addEventListener('activate', (e) => {
     e.waitUntil(
-        caches.keys().then((keys) => {
-            return Promise.all(
-                keys
-                    .filter((key) => key !== CACHE_NAME)
-                    .map((key) => caches.delete(key))
-            );
-        })
+        self.clients.claim().then(() =>
+            caches.keys().then((keys) => {
+                return Promise.all(
+                    keys
+                        .filter((key) => key !== CACHE_NAME)
+                        .map((key) => caches.delete(key))
+                );
+            })
+        )
     );
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

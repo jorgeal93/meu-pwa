@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
@@ -118,6 +118,10 @@
 
                 <button class="menu-btn" data-page="metas">
                     Metas
+                </button>
+
+                <button class="menu-btn" data-page="empresa">
+                    Empresa
                 </button>
 
                 <button class="menu-btn active" data-page="home">
@@ -520,6 +524,35 @@
 
             </section>
 
+            <!-- EMPRESA -->
+
+            <section id="empresa" class="page">
+
+                <div class="page-header">
+
+                    <h1>Empresa</h1>
+
+                    <p>
+                        Configure o nome da empresa que aparecerá nos relatórios e backups.
+                    </p>
+
+                </div>
+
+                <form id="empresaForm" class="form-box">
+
+                    <div class="form-field">
+                        <label for="empresaNome">Nome da empresa</label>
+                        <input type="text" id="empresaNome" placeholder="Ex: Força Consultoria" maxlength="80" required>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        Salvar Empresa
+                    </button>
+
+                </form>
+
+            </section>
+
             <!-- RELATÓRIOS -->
 
             <section id="relatorios" class="page">
@@ -550,7 +583,7 @@
                         <h3>Exportar PDF</h3>
 
                         <p class="card-note">
-                            Gera um relatório resumido com os lançamentos salvos.
+                            Gera um relatório com nome da empresa, logo GPF, resumo e lançamentos salvos.
                         </p>
 
                         <button id="btnPdf" class="btn-primary" type="button">
@@ -599,6 +632,10 @@
                             Faça backup com frequência para proteger os dados salvos neste navegador.
                         </p>
 
+                        <p class="card-note" id="dadosResumoStatus">
+                            Dados salvos localmente neste aparelho.
+                        </p>
+
                         <div class="action-stack">
 
                             <button id="btnRecalcular" class="btn-primary" type="button">
@@ -623,7 +660,7 @@
 
                         <h3>Versão</h3>
 
-                        <span>V2.1</span>
+                        <span>V2.2</span>
 
                     </div>
 
@@ -633,6 +670,8 @@
         </main>
 
     </section>
+
+    <div id="onlineStatus" class="online-status hidden" role="status" aria-live="polite"></div>
 
     <div id="appModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <div class="modal-card">

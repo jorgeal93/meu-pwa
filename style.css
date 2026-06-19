@@ -1100,3 +1100,84 @@ td .btn-danger {
 #iconeTema {
   font-size: 1.15rem !important;
 }
+
+/* ==============================
+   GPF V2.2 - MELHORIAS VISUAIS
+============================== */
+body.dark-theme .content::before {
+  background:
+    linear-gradient(180deg, rgba(7, 17, 13, .62), transparent 34%),
+    repeating-linear-gradient(90deg, rgba(128, 212, 159, .035) 0, rgba(128, 212, 159, .035) 1px, transparent 1px, transparent 28px);
+}
+
+body.dark-theme .login-card {
+  background: rgba(16, 32, 25, .96);
+  border-color: rgba(128, 212, 159, .18);
+}
+
+body.dark-theme .login-logo p,
+body.dark-theme .login-info {
+  color: var(--text-muted);
+}
+
+body.dark-theme .login-info {
+  background: rgba(128, 212, 159, .08);
+  border-color: rgba(128, 212, 159, .18);
+}
+
+#toggleDarkMode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+#toggleDarkMode span {
+  color: #ffffff !important;
+  font-size: 1rem !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+}
+
+#iconeTema {
+  font-size: 1.15rem !important;
+}
+
+.online-status {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1200;
+  max-width: min(420px, calc(100vw - 36px));
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  color: #ffffff;
+  font-size: .9rem;
+  font-weight: 800;
+  box-shadow: var(--shadow-lg);
+}
+
+.online-status.online {
+  background: linear-gradient(135deg, var(--leaf), var(--primary));
+}
+
+.online-status.offline {
+  background: linear-gradient(135deg, var(--warning), var(--accent-dark));
+}
+
+body.dark-theme .online-status.online {
+  background: linear-gradient(135deg, #1f6b46, #153f2b);
+}
+
+body.dark-theme .online-status.offline {
+  background: linear-gradient(135deg, #a66f18, #7a5634);
+}
+
+#empresa .form-box {
+  max-width: 680px;
+}
+
+#empresaNome {
+  font-weight: 700;
+}

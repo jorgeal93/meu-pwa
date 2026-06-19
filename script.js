@@ -1,5 +1,5 @@
-﻿// =====================================
-// GPF - GESTAO DE PRODUCAO FLORESTAL V2.1
+// =====================================
+// GPF - GESTAO DE PRODUCAO FLORESTAL V2.2
 // PARTE 1
 // NUCLEO DO SISTEMA
 // =====================================
@@ -265,6 +265,14 @@ let metas =
         diaria: 6,
         semanal: 30
     };
+
+let empresa =
+    JSON.parse(
+        localStorage.getItem("empresa")
+    ) || {
+        nome: "GPF"
+    };
+
 let dadosMigrados = false;
 
 producoes = producoes.map((prod, index) => {
@@ -353,6 +361,11 @@ function salvarDados() {
     localStorage.setItem(
         "metas",
         JSON.stringify(metas)
+    );
+
+    localStorage.setItem(
+        "empresa",
+        JSON.stringify(empresa)
     );
 
     localStorage.setItem(
@@ -2283,6 +2296,79 @@ document
         filtrarHistorico
     );
 
+
+// =====================================
+// EMPRESA
+// =====================================
+
+const empresaForm =
+    document.getElementById("empresaForm");
+
+const empresaNomeInput =
+    document.getElementById("empresaNome");
+
+function obterNomeEmpresa() {
+
+    return String(empresa?.nome || "GPF")
+        .trim() || "GPF";
+
+}
+
+function carregarEmpresa() {
+
+    if (empresaNomeInput) {
+        empresaNomeInput.value = obterNomeEmpresa();
+    }
+
+}
+
+async function salvarEmpresaAtual() {
+
+    const nome =
+        empresaNomeInput?.value?.trim();
+
+    if (!nome) {
+        await appAlert(
+            "Informe o nome da empresa.",
+            "Empresa"
+        );
+        return;
+    }
+
+    empresa = {
+        ...empresa,
+        nome
+    };
+
+    localStorage.setItem(
+        "empresa",
+        JSON.stringify(empresa)
+    );
+
+    localStorage.setItem(
+        "gpfUltimaAlteracao",
+        new Date().toISOString()
+    );
+
+    atualizarStatusBackup();
+    atualizarResumoDados();
+
+    await appAlert(
+        "Nome da empresa salvo com sucesso!",
+        "Empresa"
+    );
+
+}
+
+empresaForm
+    ?.addEventListener(
+        "submit",
+        async event => {
+            event.preventDefault();
+            await salvarEmpresaAtual();
+        }
+    );
+
 // =====================================
 // DARK MODE
 // =====================================
@@ -2602,24 +2688,88 @@ function normalizarTextoPdf(valor) {
 
 }
 
-function desenharTituloPdf(doc, margem, y) {
+function carregarImagemBase64(caminho) {
+
+    return new Promise(resolve => {
+
+        const imagem = new Image();
+        imagem.crossOrigin = "anonymous";
+
+        imagem.onload = () => {
+
+            try {
+
+                const canvas = document.createElement("canvas");
+                canvas.width = imagem.naturalWidth;
+                canvas.height = imagem.naturalHeight;
+
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(imagem, 0, 0);
+
+                resolve(
+                    canvas.toDataURL("image/png")
+                );
+
+            } catch (erro) {
+
+                resolve(null);
+
+            }
+
+        };
+
+        imagem.onerror = () => resolve(null);
+        imagem.src = caminho;
+
+    });
+
+}
+
+function desenharTituloPdf(doc, margem, y, logoBase64 = null) {
+
+    const nomeEmpresa = normalizarTextoPdf(
+        obterNomeEmpresa()
+    );
+
+    if (logoBase64) {
+        doc.addImage(
+            logoBase64,
+            "PNG",
+            margem,
+            y - 4,
+            20,
+            20
+        );
+    }
+
+    const textoX = logoBase64
+        ? margem + 25
+        : margem;
 
     doc.setTextColor(20, 37, 27);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
     doc.text(
-        "GPF | Relatorio de Producao Florestal",
-        margem,
+        nomeEmpresa,
+        textoX,
         y
     );
 
+    doc.setFontSize(11);
+    doc.setTextColor(21, 63, 43);
+    doc.text(
+        "Relatorio de Producao Florestal",
+        textoX,
+        y + 7
+    );
+
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     doc.setTextColor(97, 112, 100);
     doc.text(
-        `Gerado em ${new Date().toLocaleString("pt-BR")}`,
-        margem,
-        y + 7
+        `Gerado em ${normalizarTextoPdf(new Date().toLocaleString("pt-BR"))}`,
+        textoX,
+        y + 13
     );
 
     doc.setFont("helvetica", "bold");
@@ -2627,17 +2777,17 @@ function desenharTituloPdf(doc, margem, y) {
     doc.text(
         `Lancamentos: ${producoes.length}`,
         margem,
-        y + 16
+        y + 25
     );
     doc.text(
         `Producao total: ${somarProducaoRelatorio()}`,
-        margem + 48,
-        y + 16
+        margem + 55,
+        y + 25
     );
     doc.text(
         `Valor extra total: ${formatarMoeda(somarExtraRelatorio())}`,
-        margem + 104,
-        y + 16
+        margem + 115,
+        y + 25
     );
 
 }
@@ -2731,6 +2881,8 @@ function gerarPdfFallbackSimples(doc, linhas, margem) {
 
 }
 
+
+
 async function gerarPdfRelatorio() {
 
     if (producoes.length === 0) {
@@ -2770,10 +2922,13 @@ async function gerarPdfRelatorio() {
         obterDadosRelatorioProducao();
 
     doc.setProperties({
-        title: "Relatorio de Producao - GPF"
+        title: `Relatorio de Producao - ${normalizarTextoPdf(obterNomeEmpresa())}`
     });
 
-    desenharTituloPdf(doc, margem, 14);
+    const logoBase64 =
+        await carregarImagemBase64("./icone-192.png");
+
+    desenharTituloPdf(doc, margem, 14, logoBase64);
 
     const cabecalho = [
         "Data",
@@ -2803,7 +2958,7 @@ async function gerarPdfRelatorio() {
     if (typeof doc.autoTable === "function") {
 
         doc.autoTable({
-            startY: 42,
+            startY: 47,
             head: [cabecalho],
             body: corpo,
             theme: "grid",
@@ -2855,9 +3010,14 @@ async function gerarPdfRelatorio() {
 
     }
 
+
     adicionarRodapePdf(doc, margem);
 
-    doc.save("Relatorio_Producao_GPF.pdf");
+    const nomeArquivoEmpresa = normalizarTextoPdf(obterNomeEmpresa())
+        .replace(/[^a-zA-Z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "") || "GPF";
+
+    doc.save(`Relatorio_Producao_${nomeArquivoEmpresa}.pdf`);
 
 }
 
@@ -2927,14 +3087,37 @@ async function recalcularProducoes() {
     );
 
 }
+function gerarNomeArquivoBackup() {
+
+    const data = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace(/[:T]/g, "-");
+
+    const nomeEmpresa = normalizarTextoPdf(obterNomeEmpresa())
+        .replace(/[^a-zA-Z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "") || "GPF";
+
+    return `backup-gpf-${nomeEmpresa}-${data}.json`;
+
+}
+
 function exportarBackup() {
 
     const dados = {
-        versao: "2.1",
+        app: "GPF - Gestao de Producao Florestal",
+        versao: "2.2",
         exportadoEm: new Date().toISOString(),
+        empresa,
+        metas,
         operadores,
         producoes,
-        metas
+        resumo: {
+            totalOperadores: operadores.length,
+            totalLancamentos: producoes.length,
+            producaoTotal: somarProducaoRelatorio(),
+            valorExtraTotal: somarExtraRelatorio()
+        }
     };
 
     const blob =
@@ -2947,7 +3130,7 @@ function exportarBackup() {
         document.createElement("a");
 
     link.href = URL.createObjectURL(blob);
-    link.download = "backup-producao.json";
+    link.download = gerarNomeArquivoBackup();
     link.click();
 
     URL.revokeObjectURL(link.href);
@@ -2958,6 +3141,7 @@ function exportarBackup() {
     );
 
     atualizarStatusBackup();
+    atualizarResumoDados();
 
 }
 
@@ -2973,7 +3157,11 @@ function importarBackupArquivo(arquivo) {
 
             const dados = JSON.parse(leitor.result);
 
-            if (!Array.isArray(dados.operadores) || !Array.isArray(dados.producoes)) {
+            if (
+                !dados ||
+                !Array.isArray(dados.operadores) ||
+                !Array.isArray(dados.producoes)
+            ) {
                 throw new Error("Backup inválido.");
             }
 
@@ -2989,9 +3177,11 @@ function importarBackupArquivo(arquivo) {
             operadores = dados.operadores;
             producoes = dados.producoes;
             metas = dados.metas || metas;
+            empresa = dados.empresa || empresa;
 
             salvarDados();
             carregarMetas();
+            carregarEmpresa();
             atualizarSistema();
 
             await appAlert(
@@ -3053,10 +3243,20 @@ function atualizarStatusBackup() {
 
     const backupData = new Date(ultimoBackup);
     const alteracaoData = new Date(ultimaAlteracao || ultimoBackup);
+    const diasSemBackup = Math.floor(
+        (Date.now() - backupData.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
 
     if (alteracaoData > backupData) {
         status.textContent =
-            `Último backup: ${formatarDataHora(ultimoBackup)}. Existem alterações depois dele.`;
+            `Último backup: ${formatarDataHora(ultimoBackup)}. Existem alterações depois dele. Exporte novamente.`;
+        return;
+    }
+
+    if (diasSemBackup >= 7) {
+        status.textContent =
+            `Último backup: ${formatarDataHora(ultimoBackup)}. Recomendo exportar um backup novo.`;
         return;
     }
 
@@ -3064,6 +3264,19 @@ function atualizarStatusBackup() {
         `Último backup: ${formatarDataHora(ultimoBackup)}. Dados protegidos.`;
 
 }
+
+function atualizarResumoDados() {
+
+    const resumo =
+        document.getElementById("dadosResumoStatus");
+
+    if (!resumo) return;
+
+    resumo.textContent =
+        `${obterNomeEmpresa()} · ${operadores.length} operador(es) · ${producoes.length} lançamento(s) salvos neste aparelho.`;
+
+}
+
 
 const btnRecalcular =
     document.getElementById("btnRecalcular");
@@ -3097,6 +3310,39 @@ inputImportarBackup
             this.value = "";
         }
     );
+
+// =====================================
+// STATUS ONLINE / OFFLINE
+// =====================================
+
+const onlineStatus =
+    document.getElementById("onlineStatus");
+
+function atualizarStatusConexao() {
+
+    if (!onlineStatus) return;
+
+    const online = navigator.onLine;
+
+    onlineStatus.textContent = online
+        ? "Conectado. Os dados continuam salvos neste aparelho."
+        : "Modo offline ativo. Você pode continuar lançando e exportar backup depois.";
+
+    onlineStatus.classList.toggle("offline", !online);
+    onlineStatus.classList.toggle("online", online);
+    onlineStatus.classList.remove("hidden");
+
+    if (online) {
+        window.setTimeout(() => {
+            onlineStatus.classList.add("hidden");
+        }, 3500);
+    }
+
+}
+
+window.addEventListener("online", atualizarStatusConexao);
+window.addEventListener("offline", atualizarStatusConexao);
+
 // =====================================
 // ATUALIZA SISTEMA
 // =====================================
@@ -3125,6 +3371,8 @@ function atualizarSistema() {
 
     atualizarStatusBackup();
 
+    atualizarResumoDados();
+
 }
 
 // =====================================
@@ -3133,7 +3381,11 @@ function atualizarSistema() {
 
 carregarTema();
 
+carregarEmpresa();
+
 carregarMetas();
+
+atualizarStatusConexao();
 
 atualizarSistema();
 
