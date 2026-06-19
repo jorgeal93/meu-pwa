@@ -1,5 +1,5 @@
 ﻿/* ===================================
-   GPF - GESTAO DE PRODUCAO FLORESTAL V2.1
+   GPF - GESTAO DE PRODUCAO FLORESTAL V2.3
    SISTEMA DE GESTAO DE PRODUCAO
 =================================== */
 
@@ -1102,7 +1102,7 @@ td .btn-danger {
 }
 
 /* ==============================
-   GPF V2.2 - MELHORIAS VISUAIS
+   GPF V2.3 - MELHORIAS VISUAIS
 ============================== */
 body.dark-theme .content::before {
   background:
@@ -1180,4 +1180,37 @@ body.dark-theme .online-status.offline {
 
 #empresaNome {
   font-weight: 700;
+}
+
+
+/* ==============================
+   GPF V2.3 - RELATÓRIOS
+============================== */
+.relatorio-filtros {
+  grid-template-columns: minmax(170px, 1fr) minmax(170px, 1fr) auto;
+  align-items: end;
+}
+
+.relatorio-filtro-resumo {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--primary-soft);
+  border: 1px solid var(--border);
+  font-weight: 700;
+}
+
+body.dark-theme .relatorio-filtro-resumo {
+  background: #173426;
+}
+
+@media (max-width: 700px) {
+  .relatorio-filtros {
+    grid-template-columns: 1fr;
+  }
+
+  .relatorio-filtros .btn-secondary {
+    width: 100%;
+  }
 }

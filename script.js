@@ -1,5 +1,5 @@
 // =====================================
-// GPF - GESTAO DE PRODUCAO FLORESTAL V2.2
+// GPF - GESTAO DE PRODUCAO FLORESTAL V2.3
 // PARTE 1
 // NUCLEO DO SISTEMA
 // =====================================
@@ -1408,7 +1408,7 @@ if (producaoForm) {
 
     producaoForm.addEventListener(
         "submit",
-        function (e) {
+        async function (e) {
 
             e.preventDefault();
 
@@ -1444,13 +1444,51 @@ if (producaoForm) {
                 !pessoas
             ) {
 
+                await appAlert(
+                    "Informe operador, produção e quantidade de pessoas válidos.",
+                    "Dados inválidos"
+                );
                 return;
+
+            }
+
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dataProducao)) {
+
+                await appAlert(
+                    "Informe uma data válida para o lançamento.",
+                    "Data inválida"
+                );
+                return;
+
+            }
+
+            const localNormalizado =
+                obterLocalProducao(local);
+
+            const lancamentoDuplicado =
+                producoes.some(prod =>
+                    Number(prod.operadorId) === operadorId &&
+                    obterLocalProducao(prod.local) === localNormalizado &&
+                    formatarDataInput(prod.data) === dataProducao
+                );
+
+            if (lancamentoDuplicado) {
+
+                const confirmarDuplicado =
+                    await appConfirm(
+                        "Já existe um lançamento para este operador, local e data. Deseja salvar mesmo assim?",
+                        "Possível lançamento duplicado"
+                    );
+
+                if (!confirmarDuplicado) {
+                    return;
+                }
 
             }
 
             const meta =
                 obterMetaCalculo(
-                    local,
+                    localNormalizado,
                     pessoas
                 );
 
@@ -1459,7 +1497,7 @@ if (producaoForm) {
                     operador,
                     parcelas,
                     pessoas,
-                    local
+                    localNormalizado
                 );
 
             producoes.push({
@@ -1468,7 +1506,7 @@ if (producaoForm) {
 
                 operadorId,
 
-                local,
+                local: localNormalizado,
                 parcelas,
 
                 pessoas,
@@ -2445,6 +2483,180 @@ function alternarTema() {
 toggleDarkMode
     ?.addEventListener("click", alternarTema);
 
+
+// =====================================
+// FILTROS DOS RELATÓRIOS
+// =====================================
+
+const relatorioFiltroForm =
+    document.getElementById("relatorioFiltroForm");
+
+const relatorioDataInicial =
+    document.getElementById("relatorioDataInicial");
+
+const relatorioDataFinal =
+    document.getElementById("relatorioDataFinal");
+
+const btnLimparFiltroRelatorio =
+    document.getElementById("btnLimparFiltroRelatorio");
+
+const relatorioFiltroResumo =
+    document.getElementById("relatorioFiltroResumo");
+
+function obterPeriodoRelatorio() {
+
+    let inicial =
+        relatorioDataInicial?.value || "";
+
+    let final =
+        relatorioDataFinal?.value || "";
+
+    if (inicial && final && inicial > final) {
+        const temporaria = inicial;
+        inicial = final;
+        final = temporaria;
+    }
+
+    return {
+        inicial,
+        final
+    };
+
+}
+
+function filtrarProducoesRelatorio(lista = producoes) {
+
+    const periodo =
+        obterPeriodoRelatorio();
+
+    return lista
+        .filter(prod => {
+
+            const data =
+                formatarDataInput(
+                    prod.data
+                );
+
+            if (periodo.inicial && data < periodo.inicial) {
+                return false;
+            }
+
+            if (periodo.final && data > periodo.final) {
+                return false;
+            }
+
+            return true;
+
+        })
+        .slice()
+        .sort(
+            (a, b) =>
+                new Date(a.data) -
+                new Date(b.data)
+        );
+
+}
+
+function formatarDataPeriodoRelatorio(dataInput) {
+
+    if (!dataInput) return "";
+
+    return criarDataProducao(dataInput)
+        .toLocaleDateString("pt-BR");
+
+}
+
+function obterDescricaoPeriodoRelatorio() {
+
+    const periodo =
+        obterPeriodoRelatorio();
+
+    if (periodo.inicial && periodo.final) {
+        return `${formatarDataPeriodoRelatorio(periodo.inicial)} a ${formatarDataPeriodoRelatorio(periodo.final)}`;
+    }
+
+    if (periodo.inicial) {
+        return `A partir de ${formatarDataPeriodoRelatorio(periodo.inicial)}`;
+    }
+
+    if (periodo.final) {
+        return `Até ${formatarDataPeriodoRelatorio(periodo.final)}`;
+    }
+
+    return "Todos os lançamentos";
+
+}
+
+function obterSufixoArquivoRelatorio() {
+
+    const periodo =
+        obterPeriodoRelatorio();
+
+    if (periodo.inicial && periodo.final) {
+        return `${periodo.inicial}_a_${periodo.final}`;
+    }
+
+    if (periodo.inicial) {
+        return `desde_${periodo.inicial}`;
+    }
+
+    if (periodo.final) {
+        return `ate_${periodo.final}`;
+    }
+
+    return "todos";
+
+}
+
+function atualizarResumoFiltroRelatorio() {
+
+    if (!relatorioFiltroResumo) return;
+
+    const totalFiltrado =
+        filtrarProducoesRelatorio().length;
+
+    relatorioFiltroResumo.textContent =
+        `${obterDescricaoPeriodoRelatorio()}: ${totalFiltrado} lançamento(s) para exportar.`;
+
+}
+
+relatorioFiltroForm
+    ?.addEventListener("submit", event => {
+        event.preventDefault();
+    });
+
+[
+    relatorioDataInicial,
+    relatorioDataFinal
+].forEach(campo => {
+
+    campo?.addEventListener(
+        "input",
+        atualizarResumoFiltroRelatorio
+    );
+
+    campo?.addEventListener(
+        "change",
+        atualizarResumoFiltroRelatorio
+    );
+
+});
+
+btnLimparFiltroRelatorio
+    ?.addEventListener("click", () => {
+
+        if (relatorioDataInicial) {
+            relatorioDataInicial.value = "";
+        }
+
+        if (relatorioDataFinal) {
+            relatorioDataFinal.value = "";
+        }
+
+        atualizarResumoFiltroRelatorio();
+
+    });
+
 // =====================================
 // EXPORTAR EXCEL
 // =====================================
@@ -2458,10 +2670,24 @@ if (btnExcel) {
 
     btnExcel.addEventListener(
         "click",
-        () => {
+        async () => {
+
+            const producoesRelatorio =
+                filtrarProducoesRelatorio();
+
+            if (producoesRelatorio.length === 0) {
+
+                await appAlert(
+                    "Não existem lançamentos no período selecionado para gerar o Excel.",
+                    "Relatório vazio"
+                );
+
+                return;
+
+            }
 
             const dados =
-                producoes.map(
+                producoesRelatorio.map(
                     prod => {
 
                         const operador =
@@ -2489,9 +2715,10 @@ if (btnExcel) {
                             Funcao:
                                 operador?.funcao || "",
 
-
                             Local:
-                                obterNomeLocalProducao(prod.local), Unidade:
+                                obterNomeLocalProducao(prod.local),
+
+                            Unidade:
                                 obterUnidadeLocalProducao(prod.local),
 
                             Parcelas:
@@ -2504,7 +2731,10 @@ if (btnExcel) {
                                 obterMetaProducao(prod, operador),
 
                             Bonus:
-                                prod.bonus || 0
+                                prod.bonus || 0,
+
+                            Periodo:
+                                obterDescricaoPeriodoRelatorio()
 
                         };
 
@@ -2527,9 +2757,13 @@ if (btnExcel) {
                     "Produção"
                 );
 
+            const nomeArquivoEmpresa = normalizarTextoPdf(obterNomeEmpresa())
+                .replace(/[^a-zA-Z0-9]+/g, "_")
+                .replace(/^_+|_+$/g, "") || "GPF";
+
             XLSX.writeFile(
                 wb,
-                "Relatorio_Producao.xlsx"
+                `Relatorio_Producao_${nomeArquivoEmpresa}_${obterSufixoArquivoRelatorio()}.xlsx`
             );
 
         }
@@ -2547,9 +2781,9 @@ const btnPdf =
         "btnPdf"
     );
 
-function obterDadosRelatorioProducao() {
+function obterDadosRelatorioProducao(lista = producoes) {
 
-    return producoes
+    return lista
         .slice()
         .sort(
             (a, b) =>
@@ -2607,9 +2841,9 @@ function obterDadosRelatorioProducao() {
 
 }
 
-function somarProducaoRelatorio() {
+function somarProducaoRelatorio(lista = producoes) {
 
-    return producoes.reduce(
+    return lista.reduce(
         (total, prod) =>
             total + Number(prod.parcelas || 0),
         0
@@ -2617,9 +2851,9 @@ function somarProducaoRelatorio() {
 
 }
 
-function somarExtraRelatorio() {
+function somarExtraRelatorio(lista = producoes) {
 
-    return producoes.reduce(
+    return lista.reduce(
         (total, prod) =>
             total + Number(prod.bonus || 0),
         0
@@ -2725,7 +2959,7 @@ function carregarImagemBase64(caminho) {
 
 }
 
-function desenharTituloPdf(doc, margem, y, logoBase64 = null) {
+function desenharTituloPdf(doc, margem, y, logoBase64 = null, lista = producoes) {
 
     const nomeEmpresa = normalizarTextoPdf(
         obterNomeEmpresa()
@@ -2772,22 +3006,28 @@ function desenharTituloPdf(doc, margem, y, logoBase64 = null) {
         y + 13
     );
 
+    doc.text(
+        `Periodo: ${normalizarTextoPdf(obterDescricaoPeriodoRelatorio())}`,
+        textoX,
+        y + 19
+    );
+
     doc.setFont("helvetica", "bold");
     doc.setTextColor(20, 37, 27);
     doc.text(
-        `Lancamentos: ${producoes.length}`,
+        `Lancamentos: ${lista.length}`,
         margem,
-        y + 25
+        y + 29
     );
     doc.text(
-        `Producao total: ${somarProducaoRelatorio()}`,
+        `Producao total: ${somarProducaoRelatorio(lista)}`,
         margem + 55,
-        y + 25
+        y + 29
     );
     doc.text(
-        `Valor extra total: ${formatarMoeda(somarExtraRelatorio())}`,
+        `Valor extra total: ${formatarMoeda(somarExtraRelatorio(lista))}`,
         margem + 115,
-        y + 25
+        y + 29
     );
 
 }
@@ -2829,7 +3069,7 @@ function gerarPdfFallbackSimples(doc, linhas, margem) {
     const larguraCard =
         larguraPagina - margem * 2;
 
-    let y = 44;
+    let y = 51;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
@@ -2885,10 +3125,13 @@ function gerarPdfFallbackSimples(doc, linhas, margem) {
 
 async function gerarPdfRelatorio() {
 
-    if (producoes.length === 0) {
+    const producoesRelatorio =
+        filtrarProducoesRelatorio();
+
+    if (producoesRelatorio.length === 0) {
 
         await appAlert(
-            "Não existem lançamentos para gerar o PDF.",
+            "Não existem lançamentos no período selecionado para gerar o PDF.",
             "Relatório vazio"
         );
 
@@ -2919,7 +3162,9 @@ async function gerarPdfRelatorio() {
 
     const margem = 10;
     const linhas =
-        obterDadosRelatorioProducao();
+        obterDadosRelatorioProducao(
+            producoesRelatorio
+        );
 
     doc.setProperties({
         title: `Relatorio de Producao - ${normalizarTextoPdf(obterNomeEmpresa())}`
@@ -2928,7 +3173,13 @@ async function gerarPdfRelatorio() {
     const logoBase64 =
         await carregarImagemBase64("./icone-192.png");
 
-    desenharTituloPdf(doc, margem, 14, logoBase64);
+    desenharTituloPdf(
+        doc,
+        margem,
+        14,
+        logoBase64,
+        producoesRelatorio
+    );
 
     const cabecalho = [
         "Data",
@@ -2958,7 +3209,7 @@ async function gerarPdfRelatorio() {
     if (typeof doc.autoTable === "function") {
 
         doc.autoTable({
-            startY: 47,
+            startY: 51,
             head: [cabecalho],
             body: corpo,
             theme: "grid",
@@ -3017,7 +3268,7 @@ async function gerarPdfRelatorio() {
         .replace(/[^a-zA-Z0-9]+/g, "_")
         .replace(/^_+|_+$/g, "") || "GPF";
 
-    doc.save(`Relatorio_Producao_${nomeArquivoEmpresa}.pdf`);
+    doc.save(`Relatorio_Producao_${nomeArquivoEmpresa}_${obterSufixoArquivoRelatorio()}.pdf`);
 
 }
 
@@ -3142,6 +3393,8 @@ function exportarBackup() {
 
     atualizarStatusBackup();
     atualizarResumoDados();
+
+    atualizarResumoFiltroRelatorio();
 
 }
 
@@ -3372,6 +3625,8 @@ function atualizarSistema() {
     atualizarStatusBackup();
 
     atualizarResumoDados();
+
+    atualizarResumoFiltroRelatorio();
 
 }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v28_gpf_v2_2_sem_assinatura_cache';
+const CACHE_NAME = 'v29_gpf_v2_3_cache';
 const ASSETS = [
     './',
     './index.html',

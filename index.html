@@ -365,8 +365,8 @@
                 <form id="producaoForm" class="form-box">
 
                     <select id="localProducaoSelect" required>
-                        <option value="klabin_pr_sp">Klabin e Valor IFC / IPC / SP-PR</option>
-                        <option value="klabin_ifc">Klabin IFC / IPC / SC</option>
+                        <option value="klabin_pr_sp">Klabin e Valor / IPC / IFC / SP-PR</option>
+                        <option value="klabin_ifc">Klabin / IPC / IFC / SC</option>
                         <option value="valor_mg">Valor MG</option>
                         <option value="arauco_ms">Arauco MS</option>
                         <option value="klabin_ls">Klabin LS (Hectares)</option>
@@ -563,13 +563,36 @@
 
                 </div>
 
+                <form id="relatorioFiltroForm" class="form-box relatorio-filtros">
+
+                    <div class="form-field">
+                        <label for="relatorioDataInicial">Data inicial</label>
+                        <input type="date" id="relatorioDataInicial">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="relatorioDataFinal">Data final</label>
+                        <input type="date" id="relatorioDataFinal">
+                    </div>
+
+                    <button id="btnLimparFiltroRelatorio" class="btn-secondary" type="button">
+                        Limpar período
+                    </button>
+
+                    <p id="relatorioFiltroResumo" class="card-note relatorio-filtro-resumo">
+                        Sem período selecionado: exporta todos os lançamentos.
+                    </p>
+
+                </form>
+
+
                 <div class="cards">
 
                     <div class="card">
 
                         <h3>Exportar Excel</h3>
                         <p class="card-note">
-                            Gera uma planilha com os lançamentos salvos para abrir e editar no Excel.
+                            Gera uma planilha com os lançamentos do período selecionado para abrir e editar no Excel.
                         </p>
 
                         <button id="btnExcel" class="btn-primary">
@@ -583,7 +606,7 @@
                         <h3>Exportar PDF</h3>
 
                         <p class="card-note">
-                            Gera um relatório com nome da empresa, logo GPF, resumo e lançamentos salvos.
+                            Gera um relatório com nome da empresa, logo GPF, resumo e lançamentos do período selecionado.
                         </p>
 
                         <button id="btnPdf" class="btn-primary" type="button">
@@ -660,7 +683,7 @@
 
                         <h3>Versão</h3>
 
-                        <span>V2.2</span>
+                        <span>V2.3</span>
 
                     </div>
 
