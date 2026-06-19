@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isMember(empresaId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/empresas/$(empresaId)/usuarios/$(request.auth.uid));
+    }
+
+    function cargo(empresaId) {
+      return get(/databases/$(database)/documents/empresas/$(empresaId)/usuarios/$(request.auth.uid)).data.cargo;
+    }
+
+    match /usuariosApp/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /empresas/{empresaId} {
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow read: if isMember(empresaId);
+      allow update, delete: if isMember(empresaId) && cargo(empresaId) == 'admin';
+
+      match /usuarios/{uid} {
+        allow read: if isMember(empresaId);
+        allow create: if signedIn() && (request.auth.uid == uid || (isMember(empresaId) && cargo(empresaId) == 'admin'));
+        allow update, delete: if isMember(empresaId) && cargo(empresaId) == 'admin';
+      }
+
+      match /dados/{docId} {
+        allow read: if isMember(empresaId);
+        allow write: if isMember(empresaId) && cargo(empresaId) in ['admin', 'lider'];
+      }
+
+      match /backups/{backupId} {
+        allow read: if isMember(empresaId);
+        allow create: if isMember(empresaId);
+        allow delete: if isMember(empresaId) && cargo(empresaId) == 'admin';
+      }
+    }
+  }
+}

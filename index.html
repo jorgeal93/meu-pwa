@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>GPF | Gestão de Produção Florestal</title>
 
     <link rel="stylesheet" href="style.css">
@@ -52,9 +52,9 @@
 
                 <div class="input-group">
 
-                    <label>Usuário</label>
+                    <label>E-mail ou usuário</label>
 
-                    <input type="text" id="username" placeholder="Digite seu usuário" required>
+                    <input type="text" id="username" placeholder="Digite seu e-mail" autocomplete="username" required>
 
                 </div>
 
@@ -62,7 +62,7 @@
 
                     <label>Senha</label>
 
-                    <input type="password" id="password" placeholder="Digite sua senha" required>
+                    <input type="password" id="password" placeholder="Digite sua senha" autocomplete="current-password" required>
 
                 </div>
 
@@ -79,6 +79,32 @@
                 Acesso restrito aos responsáveis pela produção.
 
             </span>
+
+            <div id="cloudSetupBox" class="login-cloud-box hidden">
+
+                <h3>Primeiro acesso</h3>
+                <p>Crie a empresa e o primeiro administrador para usar em vários celulares.</p>
+
+                <div class="input-group">
+                    <label>Nome da empresa</label>
+                    <input type="text" id="setupEmpresaNome" placeholder="Ex: GPF Produção">
+                </div>
+
+                <div class="input-group">
+                    <label>E-mail do administrador</label>
+                    <input type="email" id="setupEmail" placeholder="admin@empresa.com" autocomplete="email">
+                </div>
+
+                <div class="input-group">
+                    <label>Senha</label>
+                    <input type="password" id="setupSenha" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+                </div>
+
+                <button id="btnCriarEmpresaCloud" class="btn-primary" type="button">
+                    Criar empresa na nuvem
+                </button>
+
+            </div>
 
         </div>
 
@@ -102,38 +128,41 @@
 
             </div>
 
-            <nav>
+            <nav class="app-nav" aria-label="Menu principal">
 
-                <button class="menu-btn" data-page="operadores">
-                    Operadores
-                </button>
-
-                <button class="menu-btn" data-page="producao">
-                    Produção
-                </button>
-
-                <button class="menu-btn" data-page="historico">
-                    Histórico
-                </button>
-
-                <button class="menu-btn" data-page="metas">
-                    Metas
-                </button>
-
-                <button class="menu-btn" data-page="empresa">
-                    Empresa
-                </button>
-
-                <button class="menu-btn active" data-page="home">
+                <button class="menu-btn active" data-page="home" type="button">
                     Dashboard
                 </button>
 
-                <button class="menu-btn" data-page="relatorios">
+                <button class="menu-btn" data-page="producao" type="button">
+                    Produção
+                </button>
+
+                <button class="menu-btn" data-page="operadores" type="button">
+                    Operadores
+                </button>
+
+                <button class="menu-btn" data-page="historico" type="button">
+                    Histórico
+                </button>
+
+                <button class="menu-btn" data-page="relatorios" type="button">
                     Relatórios
                 </button>
 
+                <button class="menu-btn" data-page="usuarios" type="button">
+                    Usuários
+                </button>
 
-                <button class="menu-btn" data-page="configuracoes">
+                <button class="menu-btn" data-page="empresa" type="button">
+                    Empresa
+                </button>
+
+                <button class="menu-btn" data-page="metas" type="button">
+                    Metas
+                </button>
+
+                <button class="menu-btn" data-page="configuracoes" type="button">
                     Configurações
                 </button>
 
@@ -374,8 +403,7 @@
 
                     <select id="operadorSelect"></select>
 
-                    <input type="number" id="parcelasInput" placeholder="Quantidade (Parcelas ou Hectares)" min="0.01"
-                        step="0.01" required>
+                    <input type="number" id="parcelasInput" placeholder="Quantidade (Parcelas ou Hectares)" min="0.01" step="0.01" required>
 
                     <input type="number" id="pessoasProducaoInput" placeholder="Quantidade de Pessoas" min="1" required>
 
@@ -524,6 +552,8 @@
 
             </section>
 
+
+
             <!-- EMPRESA -->
 
             <section id="empresa" class="page">
@@ -533,23 +563,101 @@
                     <h1>Empresa</h1>
 
                     <p>
-                        Configure o nome da empresa que aparecerá nos relatórios e backups.
+                        Configure o nome da empresa que aparecerá nos relatórios, backups e no acesso em nuvem.
                     </p>
 
                 </div>
 
-                <form id="empresaForm" class="form-box">
+                <form id="empresaForm" class="form-box empresa-form">
 
                     <div class="form-field">
                         <label for="empresaNome">Nome da empresa</label>
-                        <input type="text" id="empresaNome" placeholder="Ex: Força Consultoria" maxlength="80" required>
+                        <input type="text" id="empresaNome" placeholder="Ex: GPF Produção Florestal" autocomplete="organization">
                     </div>
 
-                    <button type="submit" class="btn-primary">
-                        Salvar Empresa
+                    <button type="submit" class="btn-primary form-submit">
+                        Salvar empresa
                     </button>
 
                 </form>
+
+                <div class="cards">
+                    <div class="card">
+                        <h3>Resumo dos dados</h3>
+                        <p id="dadosResumoStatus" class="card-note">
+                            Dados carregados neste aparelho.
+                        </p>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- USUÁRIOS -->
+
+            <section id="usuarios" class="page">
+
+                <div class="page-header">
+
+                    <h1>Usuários e Permissões</h1>
+
+                    <p>Cadastre pessoas para acessar a mesma empresa em vários celulares.</p>
+
+                </div>
+
+                <form id="usuarioForm" class="form-box operador-form">
+
+                    <div class="form-field">
+                        <label for="usuarioNome">Nome</label>
+                        <input type="text" id="usuarioNome" placeholder="Nome do usuário">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="usuarioEmail">E-mail</label>
+                        <input type="email" id="usuarioEmail" placeholder="email@empresa.com">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="usuarioSenha">Senha inicial</label>
+                        <input type="password" id="usuarioSenha" placeholder="Mínimo 6 caracteres">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="usuarioCargo">Cargo</label>
+                        <select id="usuarioCargo">
+                            <option value="lider">Líder</option>
+                            <option value="visualizador">Visualizador</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-primary form-submit">
+                        Criar usuário
+                    </button>
+
+                </form>
+
+                <div class="cards">
+                    <div class="card">
+                        <h3>Permissões</h3>
+                        <p class="card-note"><strong>Administrador:</strong> acesso completo, empresa, usuários e configurações.</p>
+                        <p class="card-note"><strong>Líder:</strong> lançamento de produção, histórico, resumo e relatórios.</p>
+                        <p class="card-note"><strong>Visualizador:</strong> consulta dashboard, histórico, resumo e relatórios.</p>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>E-mail</th>
+                                <th>Cargo</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usuariosTable"></tbody>
+                    </table>
+                </div>
 
             </section>
 
@@ -561,9 +669,13 @@
 
                     <h1>Relatórios</h1>
 
+                    <p>
+                        Exporte os lançamentos salvos por período.
+                    </p>
+
                 </div>
 
-                <form id="relatorioFiltroForm" class="form-box relatorio-filtros">
+                <form id="relatorioFiltroForm" class="form-box filtros relatorio-filtros">
 
                     <div class="form-field">
                         <label for="relatorioDataInicial">Data inicial</label>
@@ -575,28 +687,34 @@
                         <input type="date" id="relatorioDataFinal">
                     </div>
 
+                    <button type="submit" class="btn-primary">
+                        Aplicar período
+                    </button>
+
                     <button id="btnLimparFiltroRelatorio" class="btn-secondary" type="button">
-                        Limpar período
+                        Limpar filtro
                     </button>
 
                     <p id="relatorioFiltroResumo" class="card-note relatorio-filtro-resumo">
-                        Sem período selecionado: exporta todos os lançamentos.
+                        Todos os lançamentos serão exportados.
                     </p>
 
                 </form>
 
-
-                <div class="cards">
+                <div class="cards relatorio-cards">
 
                     <div class="card">
 
                         <h3>Exportar Excel</h3>
+
                         <p class="card-note">
-                            Gera uma planilha com os lançamentos do período selecionado para abrir e editar no Excel.
+                            Gera uma planilha com os lançamentos salvos para abrir e editar no Excel.
                         </p>
 
-                        <button id="btnExcel" class="btn-primary">
+                        <button id="btnExcel" class="btn-primary" type="button">
+
                             Gerar Excel
+
                         </button>
 
                     </div>
@@ -606,7 +724,7 @@
                         <h3>Exportar PDF</h3>
 
                         <p class="card-note">
-                            Gera um relatório com nome da empresa, logo GPF, resumo e lançamentos do período selecionado.
+                            Gera um relatório resumido com os lançamentos salvos.
                         </p>
 
                         <button id="btnPdf" class="btn-primary" type="button">
@@ -655,10 +773,6 @@
                             Faça backup com frequência para proteger os dados salvos neste navegador.
                         </p>
 
-                        <p class="card-note" id="dadosResumoStatus">
-                            Dados salvos localmente neste aparelho.
-                        </p>
-
                         <div class="action-stack">
 
                             <button id="btnRecalcular" class="btn-primary" type="button">
@@ -683,7 +797,7 @@
 
                         <h3>Versão</h3>
 
-                        <span>V2.3</span>
+                        <span>V3.0 Nuvem</span>
 
                     </div>
 
@@ -693,6 +807,8 @@
         </main>
 
     </section>
+
+    <div id="cloudStatus" class="cloud-status hidden" role="status" aria-live="polite"></div>
 
     <div id="onlineStatus" class="online-status hidden" role="status" aria-live="polite"></div>
 
@@ -715,8 +831,20 @@
 
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+
     <script src="script.js"></script>
 
 </body>
 
 </html>
+
+
+
+
+
+
+

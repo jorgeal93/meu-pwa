@@ -1,10 +1,11 @@
-const CACHE_NAME = 'v32_gpf_mobile_select_unico_cache';
+const CACHE_NAME = 'v34_gpf_v3_mobile_organizado_cache';
 const ASSETS = [
     './',
     './index.html',
     './style.css',
     './script.js',
     './manifest.json',
+    './firebase-config.js',
     './icone-192.png',
     './icone-512.png'
 ];

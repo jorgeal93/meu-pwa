@@ -1,5 +1,5 @@
 // =====================================
-// GPF - GESTAO DE PRODUCAO FLORESTAL V2.3
+// GPF - GESTAO DE PRODUCAO FLORESTAL V3.0 NUVEM
 // PARTE 1
 // NUCLEO DO SISTEMA
 // =====================================
@@ -18,8 +18,140 @@ const modalTitle = document.getElementById("modalTitle");
 const modalBody = document.getElementById("modalBody");
 const modalActions = document.getElementById("modalActions");
 const modalClose = document.getElementById("modalClose");
+const cloudStatus = document.getElementById("cloudStatus");
+const cloudSetupBox = document.getElementById("cloudSetupBox");
+const btnCriarEmpresaCloud = document.getElementById("btnCriarEmpresaCloud");
+const setupEmpresaNome = document.getElementById("setupEmpresaNome");
+const setupEmail = document.getElementById("setupEmail");
+const setupSenha = document.getElementById("setupSenha");
+const usuarioForm = document.getElementById("usuarioForm");
+const usuariosTable = document.getElementById("usuariosTable");
 
 let modalResolver = null;
+
+let firebaseApp = null;
+let firebaseAuth = null;
+let firebaseDb = null;
+let firebaseAtivo = false;
+let usuarioAtual = null;
+let empresaIdAtual = null;
+let cargoAtual = "admin";
+let dadosRefNuvem = null;
+let dadosUnsubscribe = null;
+let usuariosUnsubscribe = null;
+let usuariosNuvem = [];
+let salvandoNaNuvem = false;
+let carregandoDaNuvem = false;
+let timerSalvarNuvem = null;
+let criandoEmpresaCloud = false;
+
+function firebaseConfigValida() {
+
+    const config = window.GPF_FIREBASE_CONFIG;
+
+    return !!(
+        window.firebase &&
+        config &&
+        config.apiKey &&
+        !String(config.apiKey).includes("COLE_") &&
+        config.projectId &&
+        !String(config.projectId).includes("COLE_")
+    );
+
+}
+
+function mostrarStatusNuvem(mensagem, tipo = "ok", tempo = 4500) {
+
+    if (!cloudStatus) return;
+
+    cloudStatus.textContent = mensagem;
+    cloudStatus.className = `cloud-status ${tipo}`;
+    cloudStatus.classList.remove("hidden");
+
+    if (tempo) {
+        window.setTimeout(() => {
+            cloudStatus.classList.add("hidden");
+        }, tempo);
+    }
+
+}
+
+function mostrarDashboard() {
+
+    if (loginPage) loginPage.style.display = "none";
+    dashboard?.classList.remove("hidden");
+
+}
+
+function mostrarLogin() {
+
+    if (loginPage) loginPage.style.display = "flex";
+    dashboard?.classList.add("hidden");
+
+}
+
+function temPermissao(acao) {
+
+    if (!firebaseAtivo) return true;
+
+    if (cargoAtual === "admin") return true;
+
+    if (cargoAtual === "lider") {
+        return [
+            "dashboard",
+            "producao",
+            "historico",
+            "relatorios",
+            "resumo",
+            "lancar_producao"
+        ].includes(acao);
+    }
+
+    if (cargoAtual === "visualizador") {
+        return [
+            "dashboard",
+            "historico",
+            "relatorios",
+            "resumo"
+        ].includes(acao);
+    }
+
+    return false;
+
+}
+
+function aplicarPermissoesPorCargo() {
+
+    document.body.dataset.cargo = cargoAtual || "local";
+
+    const paginasRestritas = {
+        metas: "admin",
+        empresa: "admin",
+        configuracoes: "admin",
+        usuarios: "admin"
+    };
+
+    document.querySelectorAll(".menu-btn").forEach(btn => {
+        const pagina = btn.dataset.page;
+        const cargoNecessario = paginasRestritas[pagina];
+        const esconder = firebaseAtivo && cargoNecessario && cargoAtual !== cargoNecessario;
+        btn.classList.toggle("hidden", !!esconder);
+    });
+
+    const producaoPermitida = temPermissao("lancar_producao");
+    producaoForm?.querySelectorAll("input, select, button").forEach(el => {
+        el.disabled = !producaoPermitida;
+    });
+
+    if (firebaseAtivo && cargoAtual !== "admin") {
+        const ativa = document.querySelector(".menu-btn.active");
+        if (ativa && paginasRestritas[ativa.dataset.page]) {
+            document.querySelector('[data-page="home"]')?.click();
+        }
+    }
+
+}
+
 
 function escapeHtml(valor) {
 
@@ -373,6 +505,9 @@ function salvarDados() {
         new Date().toISOString()
     );
 
+    agendarSalvarNuvem();
+    verificarBackupAutomatico();
+
 }
 
 // =====================================
@@ -380,6 +515,7 @@ function salvarDados() {
 // =====================================
 
 if (
+    !firebaseConfigValida() &&
     localStorage.getItem("logged")
     === "true"
 ) {
@@ -420,6 +556,24 @@ if (loginForm) {
                     .value
                     .trim();
 
+            if (firebaseAtivo && firebaseAuth) {
+
+                try {
+                    await firebaseAuth.signInWithEmailAndPassword(
+                        usuario,
+                        senha
+                    );
+                } catch (erro) {
+                    await appAlert(
+                        "E-mail ou senha inválidos, ou usuário sem acesso.",
+                        "Acesso negado"
+                    );
+                }
+
+                return;
+
+            }
+
             if (
                 usuario === USER &&
                 senha === PASS
@@ -454,7 +608,12 @@ if (logoutBtn) {
 
     logoutBtn.addEventListener(
         "click",
-        () => {
+        async () => {
+
+            if (firebaseAtivo && firebaseAuth) {
+                await firebaseAuth.signOut();
+                return;
+            }
 
             localStorage.removeItem(
                 "logged"
@@ -1458,6 +1617,14 @@ if (producaoForm) {
         async function (e) {
 
             e.preventDefault();
+
+            if (!temPermissao("lancar_producao")) {
+                await appAlert(
+                    "Seu usuário não tem permissão para lançar produção.",
+                    "Acesso restrito"
+                );
+                return;
+            }
 
             const operadorId =
                 Number(
@@ -3443,6 +3610,10 @@ function exportarBackup() {
 
     atualizarResumoFiltroRelatorio();
 
+    aplicarPermissoesPorCargo();
+
+    renderUsuarios();
+
 }
 
 function importarBackupArquivo(arquivo) {
@@ -3611,6 +3782,562 @@ inputImportarBackup
         }
     );
 
+
+
+// =====================================
+// FIREBASE / NUVEM / USUÁRIOS
+// =====================================
+
+function dadosParaNuvem() {
+
+    return {
+        operadores,
+        producoes,
+        metas,
+        empresa,
+        atualizadoPor: usuarioAtual?.email || "local",
+        atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+}
+
+function aplicarDadosDaNuvem(dados) {
+
+    carregandoDaNuvem = true;
+
+    operadores = Array.isArray(dados.operadores)
+        ? dados.operadores
+        : [];
+
+    producoes = Array.isArray(dados.producoes)
+        ? dados.producoes
+        : [];
+
+    metas = dados.metas || metas;
+    empresa = dados.empresa || empresa;
+
+    localStorage.setItem("operadores", JSON.stringify(operadores));
+    localStorage.setItem("producoes", JSON.stringify(producoes));
+    localStorage.setItem("metas", JSON.stringify(metas));
+    localStorage.setItem("empresa", JSON.stringify(empresa));
+
+    carregandoDaNuvem = false;
+
+    carregarEmpresa();
+    carregarMetas();
+    atualizarSistema();
+
+}
+
+function agendarSalvarNuvem() {
+
+    if (
+        !firebaseAtivo ||
+        !dadosRefNuvem ||
+        !usuarioAtual ||
+        carregandoDaNuvem ||
+        salvandoNaNuvem
+    ) {
+        return;
+    }
+
+    clearTimeout(timerSalvarNuvem);
+
+    timerSalvarNuvem = window.setTimeout(
+        salvarDadosNaNuvem,
+        700
+    );
+
+}
+
+async function salvarDadosNaNuvem() {
+
+    if (!firebaseAtivo || !dadosRefNuvem || !usuarioAtual) return;
+    if (cargoAtual === "visualizador") return;
+
+    try {
+        salvandoNaNuvem = true;
+
+        await dadosRefNuvem.set(
+            dadosParaNuvem(),
+            { merge: true }
+        );
+
+        mostrarStatusNuvem(
+            "Dados sincronizados na nuvem.",
+            "ok",
+            2500
+        );
+
+    } catch (erro) {
+        console.error(erro);
+        mostrarStatusNuvem(
+            "Não foi possível sincronizar agora. Os dados seguem salvos neste aparelho.",
+            "warning",
+            6000
+        );
+    } finally {
+        salvandoNaNuvem = false;
+    }
+
+}
+
+async function criarBackupAutomaticoNuvem() {
+
+    if (!firebaseAtivo || !empresaIdAtual || !firebaseDb || !usuarioAtual) return;
+
+    const agora = new Date();
+    const backupId = agora.toISOString().replaceAll(":", "-").slice(0, 19);
+
+    await firebaseDb
+        .collection("empresas")
+        .doc(empresaIdAtual)
+        .collection("backups")
+        .doc(backupId)
+        .set({
+            tipo: "automatico",
+            empresa,
+            metas,
+            operadores,
+            producoes,
+            criadoPor: usuarioAtual.email,
+            criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+    localStorage.setItem(
+        "gpfUltimoBackupAutomatico",
+        agora.toISOString()
+    );
+
+}
+
+function verificarBackupAutomatico() {
+
+    if (!firebaseAtivo || !usuarioAtual || cargoAtual === "visualizador") return;
+
+    const ultimo = localStorage.getItem("gpfUltimoBackupAutomatico");
+    const agora = Date.now();
+    const oitoHoras = 8 * 60 * 60 * 1000;
+
+    if (!ultimo || agora - new Date(ultimo).getTime() > oitoHoras) {
+        criarBackupAutomaticoNuvem().catch(console.error);
+    }
+
+}
+
+function iniciarEscutaDadosNuvem() {
+
+    if (!dadosRefNuvem) return;
+
+    if (dadosUnsubscribe) {
+        dadosUnsubscribe();
+    }
+
+    dadosUnsubscribe = dadosRefNuvem.onSnapshot(
+        async snapshot => {
+
+            if (!snapshot.exists) {
+                await dadosRefNuvem.set(
+                    dadosParaNuvem(),
+                    { merge: true }
+                );
+                return;
+            }
+
+            aplicarDadosDaNuvem(snapshot.data() || {});
+
+        },
+        erro => {
+            console.error(erro);
+            mostrarStatusNuvem(
+                "Erro ao ouvir alterações da nuvem.",
+                "error",
+                6000
+            );
+        }
+    );
+
+}
+
+function iniciarEscutaUsuarios() {
+
+    if (!firebaseAtivo || !empresaIdAtual || !firebaseDb) return;
+
+    if (usuariosUnsubscribe) {
+        usuariosUnsubscribe();
+    }
+
+    usuariosUnsubscribe = firebaseDb
+        .collection("empresas")
+        .doc(empresaIdAtual)
+        .collection("usuarios")
+        .orderBy("criadoEm", "asc")
+        .onSnapshot(snapshot => {
+            usuariosNuvem = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            renderUsuarios();
+        });
+
+}
+
+function renderUsuarios() {
+
+    if (!usuariosTable) return;
+
+    usuariosTable.replaceChildren();
+
+    if (!firebaseAtivo) {
+        usuariosTable.appendChild(
+            criarLinhaMensagem(
+                4,
+                "Configure o Firebase para cadastrar usuários em nuvem."
+            )
+        );
+        return;
+    }
+
+    if (!usuariosNuvem.length) {
+        usuariosTable.appendChild(
+            criarLinhaMensagem(
+                4,
+                "Nenhum usuário encontrado."
+            )
+        );
+        return;
+    }
+
+    usuariosNuvem.forEach(user => {
+        const tr = document.createElement("tr");
+
+        tr.append(
+            criarCelulaTexto(user.nome || "-"),
+            criarCelulaTexto(user.email || "-"),
+            criarCelulaTexto(user.cargo || "-"),
+            criarCelulaTexto(user.ativo === false ? "Inativo" : "Ativo")
+        );
+
+        usuariosTable.appendChild(tr);
+    });
+
+}
+
+async function carregarPerfilUsuario(user) {
+
+    const mapaRef = firebaseDb
+        .collection("usuariosApp")
+        .doc(user.uid);
+
+    const mapaSnap = await mapaRef.get();
+
+    if (!mapaSnap.exists) {
+        await firebaseAuth.signOut();
+        await appAlert(
+            "Este usuário não está vinculado a nenhuma empresa.",
+            "Acesso bloqueado"
+        );
+        return;
+    }
+
+    const mapa = mapaSnap.data();
+
+    empresaIdAtual = mapa.empresaId;
+
+    const usuarioEmpresaRef = firebaseDb
+        .collection("empresas")
+        .doc(empresaIdAtual)
+        .collection("usuarios")
+        .doc(user.uid);
+
+    const usuarioEmpresaSnap = await usuarioEmpresaRef.get();
+
+    if (!usuarioEmpresaSnap.exists || usuarioEmpresaSnap.data().ativo === false) {
+        await firebaseAuth.signOut();
+        await appAlert(
+            "Usuário sem permissão ativa nesta empresa.",
+            "Acesso bloqueado"
+        );
+        return;
+    }
+
+    const usuarioEmpresa = usuarioEmpresaSnap.data();
+
+    usuarioAtual = user;
+    cargoAtual = usuarioEmpresa.cargo || mapa.cargo || "visualizador";
+
+    dadosRefNuvem = firebaseDb
+        .collection("empresas")
+        .doc(empresaIdAtual)
+        .collection("dados")
+        .doc("main");
+
+    const empresaSnap = await firebaseDb
+        .collection("empresas")
+        .doc(empresaIdAtual)
+        .get();
+
+    if (empresaSnap.exists) {
+        empresa.nome = empresaSnap.data().nome || empresa.nome;
+        localStorage.setItem("empresa", JSON.stringify(empresa));
+    }
+
+    mostrarDashboard();
+    aplicarPermissoesPorCargo();
+    iniciarEscutaDadosNuvem();
+    iniciarEscutaUsuarios();
+
+    mostrarStatusNuvem(
+        `Conectado na nuvem como ${cargoAtual}.`,
+        "ok",
+        4500
+    );
+
+}
+
+async function criarPrimeiraEmpresaNuvem() {
+
+    if (!firebaseAtivo || !firebaseAuth || !firebaseDb) {
+        await appAlert(
+            "Configure o arquivo firebase-config.js antes de criar empresa na nuvem.",
+            "Firebase não configurado"
+        );
+        return;
+    }
+
+    const nomeEmpresa = setupEmpresaNome?.value.trim();
+    const email = setupEmail?.value.trim();
+    const senha = setupSenha?.value.trim();
+
+    if (!nomeEmpresa || !email || senha.length < 6) {
+        await appAlert(
+            "Informe empresa, e-mail e senha com pelo menos 6 caracteres.",
+            "Primeiro acesso"
+        );
+        return;
+    }
+
+    try {
+        criandoEmpresaCloud = true;
+
+        const cred = await firebaseAuth.createUserWithEmailAndPassword(
+            email,
+            senha
+        );
+
+        const user = cred.user;
+        const empresaId = `empresa_${user.uid}`;
+
+        empresa = { nome: nomeEmpresa };
+        empresaIdAtual = empresaId;
+        cargoAtual = "admin";
+
+        await firebaseDb.collection("empresas").doc(empresaId).set({
+            nome: nomeEmpresa,
+            ownerUid: user.uid,
+            criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+            atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        await firebaseDb.collection("usuariosApp").doc(user.uid).set({
+            empresaId,
+            cargo: "admin",
+            email,
+            nome: "Administrador",
+            atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        await firebaseDb
+            .collection("empresas")
+            .doc(empresaId)
+            .collection("usuarios")
+            .doc(user.uid)
+            .set({
+                nome: "Administrador",
+                email,
+                cargo: "admin",
+                ativo: true,
+                criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+        await firebaseDb
+            .collection("empresas")
+            .doc(empresaId)
+            .collection("dados")
+            .doc("main")
+            .set(dadosParaNuvem(), { merge: true });
+
+        criandoEmpresaCloud = false;
+
+        await carregarPerfilUsuario(user);
+
+        await appAlert(
+            "Empresa criada. Este usuário é o administrador.",
+            "Nuvem ativada"
+        );
+
+    } catch (erro) {
+        criandoEmpresaCloud = false;
+        console.error(erro);
+        await appAlert(
+            erro?.message || "Não foi possível criar a empresa.",
+            "Erro no Firebase"
+        );
+    }
+
+}
+
+async function criarUsuarioNuvem(event) {
+
+    event.preventDefault();
+
+    if (!firebaseAtivo || cargoAtual !== "admin") {
+        await appAlert(
+            "Somente administradores podem criar usuários.",
+            "Acesso restrito"
+        );
+        return;
+    }
+
+    const nome = document.getElementById("usuarioNome")?.value.trim();
+    const email = document.getElementById("usuarioEmail")?.value.trim();
+    const senha = document.getElementById("usuarioSenha")?.value.trim();
+    const cargo = document.getElementById("usuarioCargo")?.value || "lider";
+
+    if (!nome || !email || senha.length < 6) {
+        await appAlert(
+            "Informe nome, e-mail e senha com pelo menos 6 caracteres.",
+            "Usuário"
+        );
+        return;
+    }
+
+    const confirmar = await appConfirm(
+        `Criar usuário ${email} com cargo ${cargo}?`,
+        "Criar usuário"
+    );
+
+    if (!confirmar) return;
+
+    try {
+        const appSecundario = firebase.initializeApp(
+            window.GPF_FIREBASE_CONFIG,
+            `secondary-${Date.now()}`
+        );
+
+        const authSecundario = appSecundario.auth();
+
+        const cred = await authSecundario.createUserWithEmailAndPassword(
+            email,
+            senha
+        );
+
+        const uid = cred.user.uid;
+
+        await authSecundario.signOut();
+        await appSecundario.delete();
+
+        await firebaseDb.collection("usuariosApp").doc(uid).set({
+            empresaId: empresaIdAtual,
+            cargo,
+            email,
+            nome,
+            atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        await firebaseDb
+            .collection("empresas")
+            .doc(empresaIdAtual)
+            .collection("usuarios")
+            .doc(uid)
+            .set({
+                nome,
+                email,
+                cargo,
+                ativo: true,
+                criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+                criadoPor: usuarioAtual?.email || "admin"
+            });
+
+        usuarioForm.reset();
+
+        await appAlert(
+            "Usuário criado com sucesso.",
+            "Usuários"
+        );
+
+    } catch (erro) {
+        console.error(erro);
+        await appAlert(
+            erro?.message || "Não foi possível criar o usuário.",
+            "Erro ao criar usuário"
+        );
+    }
+
+}
+
+function inicializarFirebaseNuvem() {
+
+    if (!firebaseConfigValida()) {
+        cloudSetupBox?.classList.add("hidden");
+        mostrarStatusNuvem(
+            "Modo local ativo. Configure firebase-config.js para sincronizar celulares.",
+            "warning",
+            5500
+        );
+        return;
+    }
+
+    firebaseAtivo = true;
+
+    firebaseApp = firebase.initializeApp(window.GPF_FIREBASE_CONFIG);
+    firebaseAuth = firebase.auth();
+    firebaseDb = firebase.firestore();
+
+    firebaseDb.enablePersistence({ synchronizeTabs: true }).catch(() => {
+        console.warn("Persistência offline do Firestore não ativada neste navegador.");
+    });
+
+    cloudSetupBox?.classList.remove("hidden");
+
+    firebaseAuth.onAuthStateChanged(async user => {
+
+        if (criandoEmpresaCloud) {
+            return;
+        }
+
+        if (!user) {
+            usuarioAtual = null;
+            empresaIdAtual = null;
+            cargoAtual = "visitante";
+            dadosRefNuvem = null;
+
+            if (dadosUnsubscribe) dadosUnsubscribe();
+            if (usuariosUnsubscribe) usuariosUnsubscribe();
+
+            mostrarLogin();
+            aplicarPermissoesPorCargo();
+            return;
+        }
+
+        try {
+            await carregarPerfilUsuario(user);
+        } catch (erro) {
+            console.error(erro);
+            mostrarStatusNuvem(
+                "Erro ao carregar dados da empresa.",
+                "error",
+                7000
+            );
+        }
+
+    });
+
+}
+
+btnCriarEmpresaCloud?.addEventListener("click", criarPrimeiraEmpresaNuvem);
+usuarioForm?.addEventListener("submit", criarUsuarioNuvem);
+
 // =====================================
 // STATUS ONLINE / OFFLINE
 // =====================================
@@ -3675,11 +4402,17 @@ function atualizarSistema() {
 
     atualizarResumoFiltroRelatorio();
 
+    aplicarPermissoesPorCargo();
+
+    renderUsuarios();
+
 }
 
 // =====================================
 // INICIALIZACAO
 // =====================================
+
+inicializarFirebaseNuvem();
 
 carregarTema();
 
