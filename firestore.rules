@@ -14,30 +14,49 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/empresas/$(empresaId)/usuarios/$(request.auth.uid)).data.cargo;
     }
 
+    function isAdmin(empresaId) {
+      return isMember(empresaId) && cargo(empresaId) == 'admin';
+    }
+
     match /usuariosApp/{uid} {
-      allow read, write: if signedIn() && request.auth.uid == uid;
+      allow read: if signedIn() && (
+        request.auth.uid == uid ||
+        (resource.data.empresaId is string && isMember(resource.data.empresaId))
+      );
+
+      allow create, update: if signedIn() && (
+        request.auth.uid == uid ||
+        (request.resource.data.empresaId is string && isAdmin(request.resource.data.empresaId))
+      );
+
+      allow delete: if signedIn() && (
+        request.auth.uid == uid ||
+        (resource.data.empresaId is string && isAdmin(resource.data.empresaId))
+      );
     }
 
     match /empresas/{empresaId} {
       allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
       allow read: if isMember(empresaId);
-      allow update, delete: if isMember(empresaId) && cargo(empresaId) == 'admin';
+      allow update, delete: if isAdmin(empresaId);
 
       match /usuarios/{uid} {
         allow read: if isMember(empresaId);
-        allow create: if signedIn() && (request.auth.uid == uid || (isMember(empresaId) && cargo(empresaId) == 'admin'));
-        allow update, delete: if isMember(empresaId) && cargo(empresaId) == 'admin';
+        allow create: if signedIn() && (
+          request.auth.uid == uid || isAdmin(empresaId)
+        );
+        allow update, delete: if isAdmin(empresaId);
       }
 
       match /dados/{docId} {
         allow read: if isMember(empresaId);
-        allow write: if isMember(empresaId) && cargo(empresaId) in ['admin', 'lider'];
+        allow write: if isMember(empresaId) && cargo(empresaId) in ['admin', 'lider', 'auxiliar'];
       }
 
       match /backups/{backupId} {
         allow read: if isMember(empresaId);
-        allow create: if isMember(empresaId);
-        allow delete: if isMember(empresaId) && cargo(empresaId) == 'admin';
+        allow create: if isMember(empresaId) && cargo(empresaId) in ['admin', 'lider', 'auxiliar'];
+        allow delete: if isAdmin(empresaId);
       }
     }
   }

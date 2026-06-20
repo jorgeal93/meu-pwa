@@ -20,12 +20,16 @@ const modalActions = document.getElementById("modalActions");
 const modalClose = document.getElementById("modalClose");
 const cloudStatus = document.getElementById("cloudStatus");
 const cloudSetupBox = document.getElementById("cloudSetupBox");
+const btnMostrarPrimeiroAcesso = document.getElementById("btnMostrarPrimeiroAcesso");
 const btnCriarEmpresaCloud = document.getElementById("btnCriarEmpresaCloud");
 const setupEmpresaNome = document.getElementById("setupEmpresaNome");
 const setupEmail = document.getElementById("setupEmail");
 const setupSenha = document.getElementById("setupSenha");
 const usuarioForm = document.getElementById("usuarioForm");
 const usuariosTable = document.getElementById("usuariosTable");
+const usuarioSessaoBox = document.getElementById("usuarioSessaoBox");
+const usuarioSessaoCargo = document.getElementById("usuarioSessaoCargo");
+const usuarioSessaoInfo = document.getElementById("usuarioSessaoInfo");
 
 let modalResolver = null;
 
@@ -36,6 +40,8 @@ let firebaseAtivo = false;
 let usuarioAtual = null;
 let empresaIdAtual = null;
 let cargoAtual = "admin";
+let perfilUsuarioAtual = null;
+let equipeAtual = "";
 let dadosRefNuvem = null;
 let dadosUnsubscribe = null;
 let usuariosUnsubscribe = null;
@@ -44,6 +50,8 @@ let salvandoNaNuvem = false;
 let carregandoDaNuvem = false;
 let timerSalvarNuvem = null;
 let criandoEmpresaCloud = false;
+
+const USAR_PERMISSAO_POR_EQUIPE = false;
 
 function firebaseConfigValida() {
 
@@ -96,24 +104,158 @@ function temPermissao(acao) {
 
     if (cargoAtual === "admin") return true;
 
-    if (cargoAtual === "lider") {
-        return [
+    const permissoes = {
+        lider: [
+            "home",
             "dashboard",
             "producao",
             "historico",
             "relatorios",
             "resumo",
             "lancar_producao"
-        ].includes(acao);
-    }
-
-    if (cargoAtual === "visualizador") {
-        return [
+        ],
+        auxiliar: [
+            "home",
+            "dashboard",
+            "producao",
+            "historico",
+            "relatorios",
+            "resumo",
+            "lancar_producao"
+        ],
+        visualizador: [
+            "home",
             "dashboard",
             "historico",
             "relatorios",
             "resumo"
-        ].includes(acao);
+        ]
+    };
+
+    return permissoes[cargoAtual]?.includes(acao) || false;
+
+}
+
+function normalizarEquipeAcesso(valor) {
+
+    return String(valor || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ");
+
+}
+
+function obterEquipeAtual() {
+
+    return String(
+        equipeAtual ||
+        perfilUsuarioAtual?.equipe ||
+        perfilUsuarioAtual?.equipeNome ||
+        ""
+    ).trim();
+
+}
+
+function formatarCargoUsuario(cargo) {
+
+    const nomes = {
+        admin: "Administrador",
+        lider: "Líder",
+        auxiliar: "Auxiliar",
+        visualizador: "Visualizador",
+        visitante: "Visitante"
+    };
+
+    return nomes[cargo] || cargo || "-";
+
+}
+
+function atualizarIdentificacaoUsuario() {
+
+    if (!usuarioSessaoBox || !usuarioSessaoCargo || !usuarioSessaoInfo) return;
+
+    if (!firebaseAtivo || !usuarioAtual) {
+        usuarioSessaoBox.classList.add("hidden");
+        usuarioSessaoCargo.textContent = "Visitante";
+        usuarioSessaoInfo.textContent = "Aguardando login";
+        return;
+    }
+
+    const nome = String(
+        perfilUsuarioAtual?.nome ||
+        usuarioAtual?.displayName ||
+        usuarioAtual?.email ||
+        "Usuário"
+    ).trim();
+
+    usuarioSessaoBox.classList.remove("hidden");
+    usuarioSessaoCargo.textContent = formatarCargoUsuario(cargoAtual);
+    usuarioSessaoInfo.textContent = nome;
+
+}
+
+function producaoPertenceAoUsuario(prod) {
+
+    if (!firebaseAtivo) return true;
+
+    // Administrador enxerga todos os lançamentos da empresa.
+    if (cargoAtual === "admin") return true;
+
+    const uidAtual = usuarioAtual?.uid || "";
+    const emailAtual = String(usuarioAtual?.email || "").toLowerCase();
+    const criadoPorUid = prod?.criadoPorUid || prod?.usuarioUid || "";
+    const criadoPorEmail = String(prod?.criadoPorEmail || prod?.criadoPor || "").toLowerCase();
+
+    const mesmoUsuario =
+        (!!uidAtual && criadoPorUid === uidAtual) ||
+        (!!emailAtual && criadoPorEmail === emailAtual);
+
+    // Líder, Auxiliar e Visualizador não veem lançamentos de outros logins.
+    // Cada usuário vê apenas o que foi lançado pela própria conta.
+    if (["lider", "auxiliar", "visualizador"].includes(cargoAtual)) {
+        return mesmoUsuario;
+    }
+
+    return false;
+
+}
+
+function filtrarProducoesPorPermissao(lista = producoes) {
+
+    return lista.filter(producaoPertenceAoUsuario);
+
+}
+
+function obterProducoesVisiveis() {
+
+    return filtrarProducoesPorPermissao(producoes);
+
+}
+
+function podeEditarProducao(prod) {
+
+    if (!firebaseAtivo) return true;
+    if (cargoAtual === "admin") return true;
+
+    // Líder e Auxiliar editam apenas os próprios lançamentos.
+    if (cargoAtual === "lider" || cargoAtual === "auxiliar") {
+        return producaoPertenceAoUsuario(prod);
+    }
+
+    return false;
+
+}
+
+function podeExcluirProducao(prod) {
+
+    if (!firebaseAtivo) return true;
+    if (cargoAtual === "admin") return true;
+
+    // Líder e Auxiliar apagam apenas os próprios lançamentos.
+    if (cargoAtual === "lider" || cargoAtual === "auxiliar") {
+        return producaoPertenceAoUsuario(prod);
     }
 
     return false;
@@ -123,29 +265,40 @@ function temPermissao(acao) {
 function aplicarPermissoesPorCargo() {
 
     document.body.dataset.cargo = cargoAtual || "local";
-
-    const paginasRestritas = {
-        metas: "admin",
-        empresa: "admin",
-        configuracoes: "admin",
-        usuarios: "admin"
-    };
+    document.body.dataset.equipe = obterEquipeAtual() || "sem-equipe";
+    atualizarIdentificacaoUsuario();
 
     document.querySelectorAll(".menu-btn").forEach(btn => {
         const pagina = btn.dataset.page;
-        const cargoNecessario = paginasRestritas[pagina];
-        const esconder = firebaseAtivo && cargoNecessario && cargoAtual !== cargoNecessario;
+        const esconder = firebaseAtivo && !temPermissao(pagina);
         btn.classList.toggle("hidden", !!esconder);
     });
+
+    // Relatórios precisa ficar disponível para todos os cargos ativos,
+    // pois é por ali que o usuário gera PDF e Excel com os dados permitidos.
+    const botaoRelatorios = document.querySelector('[data-page="relatorios"]');
+    if (botaoRelatorios && (!firebaseAtivo || ["admin", "lider", "auxiliar", "visualizador"].includes(cargoAtual))) {
+        botaoRelatorios.classList.remove("hidden");
+    }
 
     const producaoPermitida = temPermissao("lancar_producao");
     producaoForm?.querySelectorAll("input, select, button").forEach(el => {
         el.disabled = !producaoPermitida;
     });
 
-    if (firebaseAtivo && cargoAtual !== "admin") {
+    // Garante que líder e auxiliar consigam digitar o nome no lançamento.
+    if (producaoPermitida) {
+        operadorNomeProducaoInput?.removeAttribute("disabled");
+        localProducaoSelect?.removeAttribute("disabled");
+        parcelasInput?.removeAttribute("disabled");
+        pessoasProducaoInput?.removeAttribute("disabled");
+        dataProducaoInput?.removeAttribute("disabled");
+        producaoForm?.querySelector('button[type="submit"]')?.removeAttribute("disabled");
+    }
+
+    if (firebaseAtivo) {
         const ativa = document.querySelector(".menu-btn.active");
-        if (ativa && paginasRestritas[ativa.dataset.page]) {
+        if (ativa && !temPermissao(ativa.dataset.page)) {
             document.querySelector('[data-page="home"]')?.click();
         }
     }
@@ -959,10 +1112,22 @@ const producaoForm =
 const localProducaoSelect =
     document.getElementById(
         "localProducaoSelect"
-    ); const operadorSelect =
-        document.getElementById(
-            "operadorSelect"
-        );
+    );
+
+const operadorSelect =
+    document.getElementById(
+        "operadorSelect"
+    );
+
+const operadorNomeProducaoInput =
+    document.getElementById(
+        "operadorNomeProducaoInput"
+    );
+
+const operadoresDatalist =
+    document.getElementById(
+        "operadoresDatalist"
+    );
 
 const parcelasInput =
     document.getElementById(
@@ -1319,6 +1484,10 @@ function criarCelulaAcoes(acoes) {
     const wrapper = document.createElement("div");
     wrapper.className = "action-buttons";
 
+    if (!acoes.length) {
+        wrapper.textContent = "Sem ações";
+    }
+
     acoes.forEach(acao => {
         wrapper.appendChild(
             criarBotaoAcao(
@@ -1485,6 +1654,87 @@ function obterOperadorPorId(id) {
 
 }
 
+function obterNomeOperadorDigitado() {
+
+    return String(operadorNomeProducaoInput?.value || "").trim();
+
+}
+
+function obterFuncaoOperadorPadrao() {
+
+    if (cargoAtual === "lider") return "lider";
+    return "auxiliar";
+
+}
+
+function encontrarOperadorPorNomeProducao(nome) {
+
+    const nomeNormalizado = normalizarNomeOperador(nome);
+
+    if (!nomeNormalizado) return null;
+
+    return operadores.find(op =>
+        normalizarNomeOperador(op.nome) === nomeNormalizado
+    ) || null;
+
+}
+
+function obterOperadorParaPreview() {
+
+    const operadorPorId = obterOperadorPorId(operadorSelect?.value);
+    if (operadorPorId) return operadorPorId;
+
+    const nome = obterNomeOperadorDigitado();
+    const operadorPorNome = encontrarOperadorPorNomeProducao(nome);
+
+    if (operadorPorNome) return operadorPorNome;
+
+    if (!nome) return null;
+
+    return {
+        id: 0,
+        nome,
+        funcao: obterFuncaoOperadorPadrao(),
+        equipe: String(pessoasProducaoInput?.value || "")
+    };
+
+}
+
+function obterOuCriarOperadorProducao() {
+
+    const operadorPorId = obterOperadorPorId(operadorSelect?.value);
+    if (operadorPorId) return operadorPorId;
+
+    const nome = obterNomeOperadorDigitado();
+    if (!nome) return null;
+
+    const existente = encontrarOperadorPorNomeProducao(nome);
+    if (existente) return existente;
+
+    const novoOperador = {
+        id: Date.now(),
+        nome,
+        funcao: obterFuncaoOperadorPadrao(),
+        equipe: String(pessoasProducaoInput?.value || "1"),
+        dataCadastro: criarDataProducao(obterDataHojeInput()).toISOString()
+    };
+
+    operadores.push(novoOperador);
+    return novoOperador;
+
+}
+
+function sincronizarOperadorDigitadoComSelect() {
+
+    const nome = obterNomeOperadorDigitado();
+    const operador = encontrarOperadorPorNomeProducao(nome);
+
+    if (operadorSelect) {
+        operadorSelect.value = operador ? String(operador.id) : "";
+    }
+
+}
+
 function obterMetaProducao(prod, operador) {
 
     if (prod?.meta) return prod.meta;
@@ -1500,10 +1750,10 @@ function atualizarPreviewProducao() {
 
     if (!previewBonus) return;
 
+    sincronizarOperadorDigitadoComSelect();
+
     const operador =
-        obterOperadorPorId(
-            operadorSelect?.value
-        );
+        obterOperadorParaPreview();
 
     const parcelas =
         Number(parcelasInput?.value);
@@ -1517,7 +1767,7 @@ function atualizarPreviewProducao() {
     if (!operador || !parcelas || !pessoas) {
 
         previewBonus.textContent =
-            "Informe parcelas e pessoas para ver a prévia do valor.";
+            "Informe nome, parcelas e pessoas para ver a prévia do valor.";
 
         previewBonus.classList.remove(
             "preview-bonus-ok"
@@ -1569,16 +1819,38 @@ function renderSelectOperadores() {
             "filtroOperador"
         );
 
+    const operadoresUnicos = obterOperadoresUnicosPorNome();
+
     if (select) {
 
         select.replaceChildren();
 
-        obterOperadoresUnicosPorNome().forEach(op => {
+        const vazio = document.createElement("option");
+        vazio.value = "";
+        vazio.textContent = "";
+        select.appendChild(vazio);
+
+        operadoresUnicos.forEach(op => {
 
             const option = document.createElement("option");
             option.value = op.id;
-            option.textContent = `${op.nome} (${op.funcao})`;
+            option.textContent = `${op.nome} (${formatarFuncaoOperador(op.funcao)})`;
             select.appendChild(option);
+
+        });
+
+    }
+
+    if (operadoresDatalist) {
+
+        operadoresDatalist.replaceChildren();
+
+        operadoresUnicos.forEach(op => {
+
+            const option = document.createElement("option");
+            option.value = op.nome;
+            option.label = formatarFuncaoOperador(op.funcao);
+            operadoresDatalist.appendChild(option);
 
         });
 
@@ -1626,17 +1898,16 @@ if (producaoForm) {
                 return;
             }
 
-            const operadorId =
-                Number(
-                    operadorSelect?.value
-                );
+            sincronizarOperadorDigitadoComSelect();
 
             const local =
                 localProducaoSelect?.value ||
-                LOCAL_PADRAO; const parcelas =
-                    Number(
-                        parcelasInput?.value
-                    );
+                LOCAL_PADRAO;
+
+            const parcelas =
+                Number(
+                    parcelasInput?.value
+                );
 
             const pessoas =
                 Number(
@@ -1647,19 +1918,30 @@ if (producaoForm) {
                 dataProducaoInput?.value ||
                 obterDataHojeInput();
 
-            const operador =
-                obterOperadorPorId(
-                    operadorId
-                );
-
             if (
-                !operador ||
+                !obterNomeOperadorDigitado() ||
                 !parcelas ||
                 !pessoas
             ) {
 
                 await appAlert(
-                    "Informe operador, produção e quantidade de pessoas válidos.",
+                    "Informe nome, produção e quantidade de pessoas válidos.",
+                    "Dados inválidos"
+                );
+                return;
+
+            }
+
+            const operador =
+                obterOuCriarOperadorProducao();
+
+            const operadorId =
+                Number(operador?.id || 0);
+
+            if (!operador || !operadorId) {
+
+                await appAlert(
+                    "Não foi possível identificar o operador informado.",
                     "Dados inválidos"
                 );
                 return;
@@ -1679,8 +1961,10 @@ if (producaoForm) {
             const localNormalizado =
                 obterLocalProducao(local);
 
+            const equipeDoLancamento = obterEquipeAtual() || "Geral";
+
             const lancamentoDuplicado =
-                producoes.some(prod =>
+                obterProducoesVisiveis().some(prod =>
                     Number(prod.operadorId) === operadorId &&
                     obterLocalProducao(prod.local) === localNormalizado &&
                     formatarDataInput(prod.data) === dataProducao
@@ -1720,6 +2004,11 @@ if (producaoForm) {
 
                 operadorId,
 
+                equipeAcesso: equipeDoLancamento || "Geral",
+                criadoPorUid: usuarioAtual?.uid || null,
+                criadoPorEmail: usuarioAtual?.email || "local",
+                criadoPorCargo: cargoAtual || "local",
+
                 local: localNormalizado,
                 parcelas,
 
@@ -1752,6 +2041,7 @@ if (producaoForm) {
 [
     localProducaoSelect,
     operadorSelect,
+    operadorNomeProducaoInput,
     parcelasInput,
     pessoasProducaoInput,
     dataProducaoInput
@@ -1784,7 +2074,7 @@ function renderProducoes() {
 
     tabela.replaceChildren();
 
-    producoes
+    obterProducoesVisiveis()
         .slice()
         .reverse()
         .forEach(prod => {
@@ -1810,16 +2100,16 @@ function renderProducoes() {
                 criarCelulaTexto(formatarMoeda(prod.bonus)),
                 criarCelulaTexto(data),
                 criarCelulaAcoes([
-                    {
+                    ...(podeEditarProducao(prod) ? [{
                         texto: "Editar",
                         classe: "btn-primary",
                         evento: () => editarProducao(prod.id)
-                    },
-                    {
+                    }] : []),
+                    ...(podeExcluirProducao(prod) ? [{
                         texto: "Excluir",
                         classe: "btn-danger",
                         evento: () => removerProducao(prod.id)
-                    }
+                    }] : [])
                 ])
             );
 
@@ -1830,6 +2120,16 @@ function renderProducoes() {
 }
 
 async function removerProducao(id) {
+
+    const prod = producoes.find(item => item.id === id);
+
+    if (!prod || !podeExcluirProducao(prod)) {
+        await appAlert(
+            "Seu usuário não tem permissão para excluir este lançamento.",
+            "Acesso restrito"
+        );
+        return;
+    }
 
     const confirmar =
         await appConfirm(
@@ -1861,6 +2161,14 @@ async function editarProducao(id) {
 
     if (!prod) return;
 
+    if (!podeEditarProducao(prod)) {
+        await appAlert(
+            "Seu usuário não tem permissão para editar este lançamento.",
+            "Acesso restrito"
+        );
+        return;
+    }
+
     const operador =
         obterOperadorPorId(
             prod.operadorId
@@ -1882,12 +2190,20 @@ async function editarProducao(id) {
             titulo: "Editar produção",
             textoSalvar: "Salvar produção",
             valores: {
+                operadorNome: operador.nome || "",
                 local: localAtual,
                 quantidade: prod.parcelas,
                 pessoas: prod.pessoas || operador.equipe || "",
                 data: formatarDataInput(prod.data)
             },
             campos: [
+                {
+                    name: "operadorNome",
+                    id: "modalProducaoOperador",
+                    label: "Nome do operador",
+                    type: "text",
+                    placeholder: "Digite o nome do operador"
+                },
                 {
                     name: "local",
                     id: "modalProducaoLocal",
@@ -1929,19 +2245,38 @@ async function editarProducao(id) {
     const local =
         obterLocalProducao(dados.local);
 
+    const nomeOperador =
+        String(dados.operadorNome || "").trim();
+
     const parcelas = Number(dados.quantidade);
     const pessoas = Number(dados.pessoas);
 
     if (
+        !nomeOperador ||
         !parcelas ||
         !pessoas ||
         !/^\d{4}-\d{2}-\d{2}$/.test(dados.data)
     ) {
         await appAlert(
-            "Informe quantidade, pessoas e data válidas.",
+            "Informe nome, quantidade, pessoas e data válidas.",
             "Dados inválidos"
         );
         return;
+    }
+
+    let operadorEditado =
+        encontrarOperadorPorNomeProducao(nomeOperador);
+
+    if (!operadorEditado) {
+        operadorEditado = {
+            id: Date.now(),
+            nome: nomeOperador,
+            funcao: operador.funcao || obterFuncaoOperadorPadrao(),
+            equipe: String(pessoas || operador.equipe || "1"),
+            dataCadastro: criarDataProducao(obterDataHojeInput()).toISOString()
+        };
+
+        operadores.push(operadorEditado);
     }
 
     const meta =
@@ -1952,12 +2287,13 @@ async function editarProducao(id) {
 
     const bonus =
         calcularBonus(
-            operador,
+            operadorEditado,
             parcelas,
             pessoas,
             local
         );
 
+    prod.operadorId = Number(operadorEditado.id);
     prod.local = local;
     prod.parcelas = parcelas;
     prod.pessoas = pessoas;
@@ -1987,7 +2323,7 @@ function calcularProducaoHoje() {
     const hoje =
         new Date().toDateString();
 
-    return producoes
+    return obterProducoesVisiveis()
         .filter(prod =>
             new Date(prod.data)
                 .toDateString() === hoje
@@ -2016,7 +2352,7 @@ function calcularProducaoSemana() {
         hoje.getDay()
     );
 
-    return producoes
+    return obterProducoesVisiveis()
         .filter(prod => {
 
             const data =
@@ -2044,7 +2380,7 @@ function calcularExtraHoje() {
     const hoje =
         new Date().toDateString();
 
-    return producoes
+    return obterProducoesVisiveis()
         .filter(prod =>
             new Date(prod.data)
                 .toDateString() === hoje
@@ -2074,7 +2410,7 @@ function calcularExtraSemana() {
         hoje.getDay()
     );
 
-    return producoes
+    return obterProducoesVisiveis()
         .filter(prod => {
 
             const data =
@@ -2332,7 +2668,7 @@ function atualizarGrafico() {
         );
 
         const total =
-            producoes
+            obterProducoesVisiveis()
                 .filter(
                     prod =>
                         prod.operadorId ===
@@ -2408,6 +2744,8 @@ function renderHistorico(
 
     if (!tabela) return;
 
+    lista = filtrarProducoesPorPermissao(lista);
+
     tabela.replaceChildren();
 
     if (lista.length === 0) {
@@ -2441,7 +2779,7 @@ function renderHistorico(
             const tr = document.createElement("tr");
 
             tr.append(
-                criarCelulaTexto(operador?.equipe || "-"),
+                criarCelulaTexto(prod.equipeAcesso || prod.equipeUsuario || "-"),
                 criarCelulaTexto(operador?.nome || "-"),
                 criarCelulaTexto(formatarFuncaoOperador(operador?.funcao)),
                 criarCelulaTexto(obterNomeLocalProducao(prod.local)),
@@ -2464,7 +2802,7 @@ function renderHistorico(
 function filtrarHistorico() {
 
     let resultado =
-        [...producoes];
+        obterProducoesVisiveis();
 
     const operadorId =
         document.getElementById(
@@ -2743,7 +3081,7 @@ function filtrarProducoesRelatorio(lista = producoes) {
     const periodo =
         obterPeriodoRelatorio();
 
-    return lista
+    return filtrarProducoesPorPermissao(lista)
         .filter(prod => {
 
             const data =
@@ -2921,7 +3259,7 @@ if (btnExcel) {
                                 ),
 
                             Equipe:
-                                operador?.equipe || "",
+                                prod.equipeAcesso || prod.equipeUsuario || "",
 
                             Operador:
                                 operador?.nome || "",
@@ -3017,7 +3355,7 @@ function obterDadosRelatorioProducao(lista = producoes) {
                         prod.data
                     ),
                 equipe:
-                    operador?.equipe || "-",
+                    prod.equipeAcesso || prod.equipeUsuario || "-",
                 operador:
                     operador?.nome || "-",
                 funcao:
@@ -3744,7 +4082,7 @@ function atualizarResumoDados() {
     if (!resumo) return;
 
     resumo.textContent =
-        `${obterNomeEmpresa()} · ${operadores.length} operador(es) · ${producoes.length} lançamento(s) salvos neste aparelho.`;
+        `${obterNomeEmpresa()} · ${operadores.length} operador(es) · ${obterProducoesVisiveis().length} lançamento(s) visível(is) para este usuário.`;
 
 }
 
@@ -3991,7 +4329,7 @@ function renderUsuarios() {
     if (!firebaseAtivo) {
         usuariosTable.appendChild(
             criarLinhaMensagem(
-                4,
+                5,
                 "Configure o Firebase para cadastrar usuários em nuvem."
             )
         );
@@ -4001,7 +4339,7 @@ function renderUsuarios() {
     if (!usuariosNuvem.length) {
         usuariosTable.appendChild(
             criarLinhaMensagem(
-                4,
+                5,
                 "Nenhum usuário encontrado."
             )
         );
@@ -4011,15 +4349,103 @@ function renderUsuarios() {
     usuariosNuvem.forEach(user => {
         const tr = document.createElement("tr");
 
+        const acoes = [];
+
+        if (cargoAtual === "admin") {
+            const usuarioEhAtual = user.id === usuarioAtual?.uid;
+            const estaAtivo = user.ativo !== false;
+
+            if (!usuarioEhAtual) {
+                acoes.push({
+                    texto: estaAtivo ? "Desativar" : "Reativar",
+                    classe: estaAtivo ? "btn-danger" : "btn-primary",
+                    evento: () => alterarStatusUsuarioNuvem(user, !estaAtivo)
+                });
+            }
+        }
+
         tr.append(
             criarCelulaTexto(user.nome || "-"),
             criarCelulaTexto(user.email || "-"),
-            criarCelulaTexto(user.cargo || "-"),
-            criarCelulaTexto(user.ativo === false ? "Inativo" : "Ativo")
+            criarCelulaTexto(formatarCargoUsuario(user.cargo)),
+            criarCelulaTexto(user.ativo === false ? "Inativo" : "Ativo"),
+            criarCelulaAcoes(acoes)
         );
 
         usuariosTable.appendChild(tr);
     });
+
+}
+
+async function alterarStatusUsuarioNuvem(user, novoStatusAtivo) {
+
+    if (!firebaseAtivo || cargoAtual !== "admin") {
+        await appAlert(
+            "Somente administradores podem alterar o acesso de usuários.",
+            "Acesso restrito"
+        );
+        return;
+    }
+
+    if (!user?.id) {
+        await appAlert(
+            "Usuário não encontrado.",
+            "Usuários"
+        );
+        return;
+    }
+
+    if (user.id === usuarioAtual?.uid) {
+        await appAlert(
+            "Você não pode desativar o seu próprio acesso.",
+            "Ação bloqueada"
+        );
+        return;
+    }
+
+    const acaoTexto = novoStatusAtivo ? "reativar" : "desativar";
+    const confirmar = await appConfirm(
+        `Deseja ${acaoTexto} o acesso de ${user.nome || user.email || "este usuário"}?`,
+        novoStatusAtivo ? "Reativar usuário" : "Desativar usuário"
+    );
+
+    if (!confirmar) return;
+
+    try {
+        await firebaseDb
+            .collection("empresas")
+            .doc(empresaIdAtual)
+            .collection("usuarios")
+            .doc(user.id)
+            .set({
+                ativo: !!novoStatusAtivo,
+                atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+                atualizadoPor: usuarioAtual?.email || "admin"
+            }, { merge: true });
+
+        await firebaseDb
+            .collection("usuariosApp")
+            .doc(user.id)
+            .set({
+                ativo: !!novoStatusAtivo,
+                atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+                atualizadoPor: usuarioAtual?.email || "admin"
+            }, { merge: true });
+
+        await appAlert(
+            novoStatusAtivo
+                ? "Usuário reativado com sucesso."
+                : "Usuário desativado. Ele não conseguirá entrar no app, mas o histórico dele continuará salvo.",
+            "Usuários"
+        );
+
+    } catch (erro) {
+        console.error(erro);
+        await appAlert(
+            erro?.message || "Não foi possível alterar o usuário.",
+            "Erro no Firebase"
+        );
+    }
 
 }
 
@@ -4064,7 +4490,12 @@ async function carregarPerfilUsuario(user) {
     const usuarioEmpresa = usuarioEmpresaSnap.data();
 
     usuarioAtual = user;
-    cargoAtual = usuarioEmpresa.cargo || mapa.cargo || "visualizador";
+    perfilUsuarioAtual = {
+        ...mapa,
+        ...usuarioEmpresa
+    };
+    cargoAtual = String(usuarioEmpresa.cargo || mapa.cargo || "visualizador").trim().toLowerCase();
+    equipeAtual = usuarioEmpresa.equipe || mapa.equipe || usuarioEmpresa.equipeNome || mapa.equipeNome || "Geral";
 
     dadosRefNuvem = firebaseDb
         .collection("empresas")
@@ -4088,7 +4519,7 @@ async function carregarPerfilUsuario(user) {
     iniciarEscutaUsuarios();
 
     mostrarStatusNuvem(
-        `Conectado na nuvem como ${cargoAtual}.`,
+        `Conectado na nuvem como ${formatarCargoUsuario(cargoAtual)}.`,
         "ok",
         4500
     );
@@ -4144,6 +4575,7 @@ async function criarPrimeiraEmpresaNuvem() {
             cargo: "admin",
             email,
             nome: "Administrador",
+            equipe: "Geral",
             atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
         });
 
@@ -4156,6 +4588,7 @@ async function criarPrimeiraEmpresaNuvem() {
                 nome: "Administrador",
                 email,
                 cargo: "admin",
+                equipe: "Geral",
                 ativo: true,
                 criadoEm: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -4170,6 +4603,8 @@ async function criarPrimeiraEmpresaNuvem() {
         criandoEmpresaCloud = false;
 
         await carregarPerfilUsuario(user);
+
+        cloudSetupBox?.classList.add("hidden");
 
         await appAlert(
             "Empresa criada. Este usuário é o administrador.",
@@ -4203,6 +4638,7 @@ async function criarUsuarioNuvem(event) {
     const email = document.getElementById("usuarioEmail")?.value.trim();
     const senha = document.getElementById("usuarioSenha")?.value.trim();
     const cargo = document.getElementById("usuarioCargo")?.value || "lider";
+    const equipe = "Geral";
 
     if (!nome || !email || senha.length < 6) {
         await appAlert(
@@ -4213,7 +4649,7 @@ async function criarUsuarioNuvem(event) {
     }
 
     const confirmar = await appConfirm(
-        `Criar usuário ${email} com cargo ${cargo}?`,
+        `Criar usuário ${email} como ${formatarCargoUsuario(cargo)}?`,
         "Criar usuário"
     );
 
@@ -4240,6 +4676,7 @@ async function criarUsuarioNuvem(event) {
         await firebaseDb.collection("usuariosApp").doc(uid).set({
             empresaId: empresaIdAtual,
             cargo,
+            equipe: equipe || "Geral",
             email,
             nome,
             atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
@@ -4254,6 +4691,7 @@ async function criarUsuarioNuvem(event) {
                 nome,
                 email,
                 cargo,
+                equipe: equipe || "Geral",
                 ativo: true,
                 criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
                 criadoPor: usuarioAtual?.email || "admin"
@@ -4298,7 +4736,7 @@ function inicializarFirebaseNuvem() {
         console.warn("Persistência offline do Firestore não ativada neste navegador.");
     });
 
-    cloudSetupBox?.classList.remove("hidden");
+    btnMostrarPrimeiroAcesso?.classList.remove("hidden");
 
     firebaseAuth.onAuthStateChanged(async user => {
 
@@ -4308,6 +4746,8 @@ function inicializarFirebaseNuvem() {
 
         if (!user) {
             usuarioAtual = null;
+            perfilUsuarioAtual = null;
+            equipeAtual = "";
             empresaIdAtual = null;
             cargoAtual = "visitante";
             dadosRefNuvem = null;
@@ -4334,6 +4774,17 @@ function inicializarFirebaseNuvem() {
     });
 
 }
+
+btnMostrarPrimeiroAcesso?.addEventListener("click", () => {
+    if (!firebaseAtivo) {
+        mostrarStatusNuvem(
+            "Configure firebase-config.js para criar o primeiro acesso na nuvem.",
+            "warn"
+        );
+    }
+
+    cloudSetupBox?.classList.toggle("hidden");
+});
 
 btnCriarEmpresaCloud?.addEventListener("click", criarPrimeiraEmpresaNuvem);
 usuarioForm?.addEventListener("submit", criarUsuarioNuvem);

@@ -52,9 +52,9 @@
 
                 <div class="input-group">
 
-                    <label>E-mail ou usuário</label>
+                    <label>E-mail</label>
 
-                    <input type="text" id="username" placeholder="Digite seu e-mail" autocomplete="username" required>
+                    <input type="email" id="username" placeholder="Digite seu e-mail" autocomplete="username" required>
 
                 </div>
 
@@ -62,8 +62,7 @@
 
                     <label>Senha</label>
 
-                    <input type="password" id="password" placeholder="Digite sua senha" autocomplete="current-password"
-                        required>
+                    <input type="password" id="password" placeholder="Digite sua senha" autocomplete="current-password" required>
 
                 </div>
 
@@ -80,6 +79,12 @@
                 Acesso restrito aos responsáveis pela produção.
 
             </span>
+
+            <div class="login-extra-actions">
+                <button id="btnMostrarPrimeiroAcesso" class="btn-link-login" type="button">
+                    Criar primeiro acesso
+                </button>
+            </div>
 
             <div id="cloudSetupBox" class="login-cloud-box hidden">
 
@@ -98,8 +103,7 @@
 
                 <div class="input-group">
                     <label>Senha</label>
-                    <input type="password" id="setupSenha" placeholder="Mínimo 6 caracteres"
-                        autocomplete="new-password">
+                    <input type="password" id="setupSenha" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
                 </div>
 
                 <button id="btnCriarEmpresaCloud" class="btn-primary" type="button">
@@ -130,35 +134,40 @@
 
             </div>
 
+            <div id="usuarioSessaoBox" class="usuario-sessao hidden" aria-live="polite">
+                <span class="usuario-sessao-label">Logado como</span>
+                <strong id="usuarioSessaoCargo">Visitante</strong>
+                <small id="usuarioSessaoInfo">Aguardando login</small>
+            </div>
+
             <nav class="app-nav" aria-label="Menu principal">
 
                 <button class="menu-btn active" data-page="home" type="button">
                     Dashboard
                 </button>
 
-                <button class="menu-btn" data-page="empresa" type="button">
-                    Empresa
+                <button class="menu-btn" data-page="producao" type="button">
+                    Produção
                 </button>
 
                 <button class="menu-btn" data-page="operadores" type="button">
                     Operadores
                 </button>
 
-                <button class="menu-btn" data-page="producao" type="button">
-                    Produção
+                <button class="menu-btn" data-page="historico" type="button">
+                    Histórico
                 </button>
 
                 <button class="menu-btn" data-page="relatorios" type="button">
                     Relatórios
                 </button>
 
-
-                <button class="menu-btn" data-page="historico" type="button">
-                    Histórico
-                </button>
-
                 <button class="menu-btn" data-page="usuarios" type="button">
                     Usuários
+                </button>
+
+                <button class="menu-btn" data-page="empresa" type="button">
+                    Empresa
                 </button>
 
                 <button class="menu-btn" data-page="metas" type="button">
@@ -404,10 +413,11 @@
                         <option value="klabin_ls">Klabin LS (Hectares)</option>
                     </select>
 
-                    <select id="operadorSelect"></select>
+                    <input type="text" id="operadorNomeProducaoInput" placeholder="Digite o nome do operador" autocomplete="off" required>
+                    <datalist id="operadoresDatalist"></datalist>
+                    <select id="operadorSelect" class="hidden" aria-hidden="true" tabindex="-1"></select>
 
-                    <input type="number" id="parcelasInput" placeholder="Quantidade (Parcelas ou Hectares)" min="0.01"
-                        step="0.01" required>
+                    <input type="number" id="parcelasInput" placeholder="Quantidade (Parcelas ou Hectares)" min="0.01" step="0.01" required>
 
                     <input type="number" id="pessoasProducaoInput" placeholder="Quantidade de Pessoas" min="1" required>
 
@@ -576,8 +586,7 @@
 
                     <div class="form-field">
                         <label for="empresaNome">Nome da empresa</label>
-                        <input type="text" id="empresaNome" placeholder="Ex: GPF Produção Florestal"
-                            autocomplete="organization">
+                        <input type="text" id="empresaNome" placeholder="Ex: GPF Produção Florestal" autocomplete="organization">
                     </div>
 
                     <button type="submit" class="btn-primary form-submit">
@@ -630,11 +639,11 @@
                         <label for="usuarioCargo">Cargo</label>
                         <select id="usuarioCargo">
                             <option value="lider">Líder</option>
+                            <option value="auxiliar">Auxiliar</option>
                             <option value="visualizador">Visualizador</option>
                             <option value="admin">Administrador</option>
                         </select>
                     </div>
-
                     <button type="submit" class="btn-primary form-submit">
                         Criar usuário
                     </button>
@@ -644,12 +653,10 @@
                 <div class="cards">
                     <div class="card">
                         <h3>Permissões</h3>
-                        <p class="card-note"><strong>Administrador:</strong> acesso completo, empresa, usuários e
-                            configurações.</p>
-                        <p class="card-note"><strong>Líder:</strong> lançamento de produção, histórico, resumo e
-                            relatórios.</p>
-                        <p class="card-note"><strong>Visualizador:</strong> consulta dashboard, histórico, resumo e
-                            relatórios.</p>
+                        <p class="card-note"><strong>Administrador:</strong> vê tudo, pode configurar o sistema e desativar/reativar usuários.</p>
+                        <p class="card-note"><strong>Líder:</strong> lança produção e vê somente os próprios lançamentos.</p>
+                        <p class="card-note"><strong>Auxiliar:</strong> lança produção e vê somente os próprios lançamentos.</p>
+                        <p class="card-note"><strong>Visualizador:</strong> consulta somente os próprios lançamentos disponíveis.</p>
                     </div>
                 </div>
 
@@ -661,6 +668,7 @@
                                 <th>E-mail</th>
                                 <th>Cargo</th>
                                 <th>Status</th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="usuariosTable"></tbody>
@@ -849,3 +857,10 @@
 </body>
 
 </html>
+
+
+
+
+
+
+

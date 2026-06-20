@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v34_gpf_v3_mobile_organizado_cache';
+const CACHE_NAME = 'v41_gpf_v3_cargo_proprio_usuario';
 const ASSETS = [
     './',
     './index.html',
