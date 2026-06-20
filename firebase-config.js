@@ -7,11 +7,14 @@
 // 4. Ative Authentication > Email/Senha.
 // 5. Ative Firestore Database.
 
-window.GPF_FIREBASE_CONFIG = {
-    apiKey: "COLE_SUA_API_KEY",
-    authDomain: "COLE_SEU_PROJETO.firebaseapp.com",
-    projectId: "COLE_SEU_PROJECT_ID",
-    storageBucket: "COLE_SEU_PROJETO.appspot.com",
-    messagingSenderId: "COLE_SEU_MESSAGING_SENDER_ID",
-    appId: "COLE_SEU_APP_ID"
+const firebaseConfig = {
+  apiKey: "AIzaSyCx8GNN4AQWpD0ioMUGiHDthesBmWiIeek",
+  authDomain: "gestao-de-producao-florestal.firebaseapp.com",
+  projectId: "gestao-de-producao-florestal",
+  storageBucket: "gestao-de-producao-florestal.firebasestorage.app",
+  messagingSenderId: "279804943694",
+  appId: "1:279804943694:web:bd51942b4103563dfdd21f",
+  measurementId: "G-4PXFTD7TZX"
 };
+
+window.GPF_FIREBASE_CONFIG = firebaseConfig;
