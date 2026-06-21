@@ -1,11 +1,14 @@
-GPF V3 - Visibilidade por usuário
+GPF V3 - Estilo Premium Mobile
 
-Alteração:
-- Administrador vê todos os lançamentos.
-- Líder vê somente os próprios lançamentos.
-- Auxiliar vê somente os próprios lançamentos.
-- Visualizador vê somente os próprios lançamentos disponíveis.
+Alteração desta versão:
+- Melhoria visual com identidade florestal mais forte.
+- Campos e botões maiores para celular.
+- Menu superior mais confortável no mobile.
+- Tabelas em formato de cartões no celular.
+- Ajustes de contraste no modo escuro.
+- Cache do PWA atualizado.
 
 Importante:
-- Não substitua seu firebase-config.js, pois ele contém sua chave real do Firebase.
-- Depois de trocar os arquivos, use Ctrl + F5 no navegador para limpar cache.
+- Não substitua seu firebase-config.js se ele já está funcionando.
+- Para atualizar no PC, troque os arquivos e use Ctrl + F5.
+- No celular, se aparecer visual antigo, remova o app instalado e instale novamente.
